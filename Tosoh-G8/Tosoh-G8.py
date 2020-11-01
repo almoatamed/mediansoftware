@@ -521,7 +521,7 @@ class Toplevel1:
         self.connection_state_text.configure(wrap="none")
 
 
-        self.path=str(os.path.expanduser('~\\desktop\\'))
+        self.path=str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
             os.mkdir(self.device_name)

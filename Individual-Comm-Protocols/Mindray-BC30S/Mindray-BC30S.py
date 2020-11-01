@@ -495,7 +495,7 @@ class Toplevel1():
         self.getIP()
         self.ip_entry.insert(0, self.ip)
         self.port_entry.insert(0, self.port)
-        self.path=str(os.path.expanduser('~\\desktop\\'))
+        self.path=str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
             os.mkdir(self.device_name)

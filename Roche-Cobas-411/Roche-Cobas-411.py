@@ -598,7 +598,7 @@ class Toplevel1:
 
         print('__init__: l2g,',self.l2g)
 
-        self.path = str(os.path.expanduser('~\\desktop\\'))
+        self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
             os.mkdir(self.device_name)

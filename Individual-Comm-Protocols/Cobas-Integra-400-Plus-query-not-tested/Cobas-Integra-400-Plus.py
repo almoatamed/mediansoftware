@@ -709,7 +709,7 @@ class Toplevel1:
         for key in self.l2g:
             self.g2l[self.l2g[key]] = key
 
-        self.path = str(os.path.expanduser('~\\desktop\\'))
+        self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
             os.mkdir(self.device_name)
