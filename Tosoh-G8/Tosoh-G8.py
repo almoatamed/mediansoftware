@@ -182,26 +182,6 @@ class Toplevel1:
                 c.close()
             return x
 
-    # inserts into samples tabel the barcode as new sample
-    # it uses the sampleget function to check if the sample barcode
-    # already exists.
-    def sampleset(self, barcode):
-        if self.sampleget(barcode):
-            return False
-        else:
-            print('inserting barcode')
-            self.dbc('insert into sample(barcode) values(' + str(barcode) + ')')
-            return True
-
-    # returns the first sample from the database with given barcode
-    # note that the barcode is unique value so it
-    # should either return one or non.
-    def sampleget(self, barcode):
-        x = self.dbc('select * from sample where barcode = ' + str(barcode) + ';')
-        print(x)
-        return x
-        # return [i for i in c.execute('select * from sample ;')][0]
-
     # update counter where counter is used as the test id
     def cset(self):
         self.dbc('update counter set count = '+str(self.cget()+1)+' where id = 1 ')
@@ -261,7 +241,6 @@ class Toplevel1:
     def writer(self,result):
         self.last_result = result
         print(self.last_result)
-        # self.sampleset(self.last_result['id'])
         self.testset(self.last_result)
         self.write_clicked()
 
@@ -530,22 +509,6 @@ class Toplevel1:
         os.chdir(self.path + self.device_name)
 
         self.port_entry.insert(0, 'USB-SERIAL CH340')
-
-        self.dbc()
-        try:
-            self.dbc('''
-                    CREATE TABLE sample(
-                    barcode unsigned int primary key,
-                    created_at datetime not null default current_timestamp
-                    )
-                ''')
-        except sqlite3.OperationalError as e:
-            print('already exists')
-            if str(e)[-6:] == 'exists':
-                pass
-            else:
-                raise sqlite3.OperationalError
-
 
         try:
             self.dbc('''

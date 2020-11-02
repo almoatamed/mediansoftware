@@ -351,7 +351,7 @@ class Toplevel1():
     def writer(self,result):
         self.last_result = result
         print(self.last_result)
-        # self.sampleset(self.last_result['id'])
+        # self.sampleset(self.last_result['id'])?
         self.testset(self.last_result)
         self.write_clicked()
 

@@ -1,5 +1,6 @@
 import tkinter as tk
 import tkinter.ttk as ttk
+import os
 import sys
 import platform
 py3 = True
