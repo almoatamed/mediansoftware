@@ -473,22 +473,6 @@ class Toplevel1():
         # print(os.getcwd())
         self.globalCode2localCode()
 
-        self.dbc()
-        try:
-            self.dbc('''
-                    CREATE TABLE sample(
-                    barcode unsigned int primary key,
-                    created_at datetime not null default current_timestamp
-                    )
-                ''')
-        except sqlite3.OperationalError as e:
-            # print('already exists')
-            if str(e)[-6:] == 'exists':
-                pass
-            else:
-                raise sqlite3.OperationalError
-
-
         try:
             self.dbc('''
                     CREATE TABLE counter(
@@ -513,8 +497,7 @@ class Toplevel1():
                     barcodeid varchar(30) not null,
                     results varchar(20000) not null,
                     uploadstate varchar(1) default 'n',
-                    created_at datetime not null default current_timestamp,
-                    FOREIGN KEY(barcodeid) REFERENCES user(barcode)
+                    created_at datetime not null default current_timestamp
                     );
                 ''')
         except sqlite3.OperationalError as e:

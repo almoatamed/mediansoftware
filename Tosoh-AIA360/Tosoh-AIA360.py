@@ -450,7 +450,7 @@ class Toplevel1:
     # list available port in the dropbox specified for that
     def initiate_port_entry(self):
         x = list(serial.tools.list_ports.comports())
-        print('the list of ports', len(x), )
+        print('initiate_port_entry: the list of ports', len(x) )
         list_values = []
         for i in x:
             list_values.append(i.description)

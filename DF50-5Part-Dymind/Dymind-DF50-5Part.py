@@ -154,7 +154,7 @@ class Toplevel1():
 
     # connection parameters
     ip = 0
-    port = '5122'
+    port = '5100'
 
     # api parameters
     sampleid = b'sample_code'
@@ -166,11 +166,8 @@ class Toplevel1():
     # gets the right ip
     def getIP(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
         s.connect(('8.8.8.8', 80))
-
         self.ip = s.getsockname()[0]
-
         s.close()
 
     # gets the connection ip and port for the local network instrument
