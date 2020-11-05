@@ -59,7 +59,7 @@ class Toplevel1():
         self.connect_button.place(relx=0.804, rely=0.34, height=25, width=76
                                   , bordermode='ignore')
         self.connect_button.configure(text='''connect''')
-        self.connect_button.configure(command=lambda e='': self.start1(e))
+        self.connect_button.configure(command=lambda e='': self.connect(e))
 
         self.disconnect_button = ttk.Button(self.connection_parameter_frame)
         self.disconnect_button.place(relx=0.804, rely=0.54, height=25, width=76
@@ -292,6 +292,6 @@ def _on_shiftmouse(event, widget):
             widget.xview_scroll(1, 'units')
 
 #
-aia = Toplevel1()
-aia.root.mainloop()
+instance = Toplevel1()
+instance.root.mainloop()
 

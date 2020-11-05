@@ -48,11 +48,11 @@ class Toplevel1:
     results = {}
     last_result = {}
     SC = 'n'
-    IDLE =    b'\x01\n09_COBAS_INTEGRA   _00\n\x02\n\x03\n\x04\n'
-    IDLE2 =   b'\x0114 COBAS INTEGRA400 00\x0A\x02\x0A\x03\x0A\x04\x0A'
+    IDLE = b'\x01\n09_COBAS_INTEGRA   _00\n\x02\n\x03\n\x04\n'
+    IDLE2 = b'\x0114 COBAS INTEGRA400 00\x0A\x02\x0A\x03\x0A\x04\x0A'
     IDLEResponse = b'\x01\x0A09_INTEGRA\x2030-1051\x20_00\x0A\x02\x0A\x03\x0A1\x0A299\x0A\x04\x0A'
-    RQ =      b'\x01\n09_COBAS_INTEGRA   _09\n\x02\n10_07\n\x03\n'
-    OQ =      b'\x01\n09_COBAS_INTEGRA   _60\n\x02\n40_1\n\x03\n'
+    RQ = b'\x01\n09_COBAS_INTEGRA   _09\n\x02\n10_07\n\x03\n'
+    OQ = b'\x01\n09_COBAS_INTEGRA   _60\n\x02\n40_1\n\x03\n'
     RQready = b'\x01\n09_COBAS_INTEGRA   _09\n\x02\n10_07\n\x03\n0\n872\n\x04\n'
     LF = b'\n'
 
@@ -79,7 +79,7 @@ class Toplevel1:
         for p in ports:
             if self.port_entry.get() in p.description:
                 try:
-                    s = serial.Serial(p.device, self.rate, self.bitlength, self.parity, self.stopbit,timeout=10)
+                    s = serial.Serial(p.device, self.rate, self.bitlength, self.parity, self.stopbit, timeout=10)
                 except:
                     self.show('ERROR: error while trying to open the port')
                     return None
@@ -109,7 +109,6 @@ class Toplevel1:
             self.show('ERROR: there is no connection')
             self.connect_button.configure(state='enable')
 
-
     def communicate(self):
         frames = [b'']
         final_frames = []
@@ -123,23 +122,23 @@ class Toplevel1:
                     return False
                 if data == b'\x05' or data == b'\x0A' or data == b'\x04':
                     if data == b'\x05':
+                        print('Communicate: Enq,', data)
                         self.port.write(b'\x06')
                     elif data == b'\x0A':
                         frames[-1] += data
-                        splitchar = b''
                         try:
                             if b'\x03' in frames[-1]:
                                 splitchar = b'\x03'
                             else:
                                 splitchar = b'\x17'
-                            if self.check_sum(frames[-1].split(splitchar),splitchar):
+                            if self.check_sum(frames[-1].split(splitchar), splitchar):
                                 self.port.write(b'\x06')
                             else:
                                 self.show('\nchecksum False for ' + str(len(frames)))
                                 frames.pop()
                                 self.port.write(b'\x15')
                         except:
-                            self.show('\nchecksum False for ' + str(len(frames)))
+                            self.show('\nchecksum Error for ' + str(len(frames)))
                             frames.pop()
                             self.port.write(b'\x15')
                         frames.append(''.encode('ascii'))
@@ -148,16 +147,18 @@ class Toplevel1:
                         if not frames[-1]:
                             frames.pop()
                         try:
-                            self.record_type = {'R':[]}
+                            self.record_type = {'R': []}
                             for i in range(len(frames)):
                                 if chr(frames[i][2]) == 'R':
                                     self.record_type['R'].append(i)
                                 else:
                                     self.record_type[chr(frames[i][2])] = i
-
-                            if len(self.record_type['R'])>0:
+                            print('communicate: record_type, ', self.record_type)
+                            if len(self.record_type['R']) > 0:
+                                print('communicate: results')
                                 self.result(frames)
                             elif 'Q' in self.record_type:
+                                print('communicate: query')
                                 self.reader(frames)
                         except:
                             print('Communicate: error while trying to analyse message')
@@ -166,13 +167,13 @@ class Toplevel1:
                 elif data:
                     frames[-1] += data
         except serial.serialutil.SerialException:
-            self.show('Looper: ERROR serial has been disconnected ')
+            self.show('communicate: ERROR serial has been disconnected ')
             self.disconnect()
 
     l2g = {}
     g2l = {}
 
-    def check_sum(self, frame,splitchar):
+    def check_sum(self, frame, splitchar):
         print('check_sum: frame given', frame, ', splitchar', splitchar)
         if self.check_sum_creator(frame[0][1:] + splitchar) == frame[1][0:2]:
             return True
@@ -180,10 +181,12 @@ class Toplevel1:
             return False
 
     '''this one is responsible for returning a dictionary containing result details'''
-    def result(self,frames):
-        print('result: frames',frames)
-        r = {'result':{}}
-        r['id'] = frames[self.record_type['O']].split(b'|')[2]
+
+    def result(self, frames):
+        print('result: frames', frames)
+        r = {'result': {}}
+        r['id'] = frames[self.record_type['O']].split(b'|')[3].split(b'^')[0].decode()
+        print('result: id,',r['id'])
         for i in self.record_type['R']:
             localCode = frames[i].split(b'|')[2].split(b'^')[3].decode()
             if localCode in self.l2g:
@@ -192,7 +195,7 @@ class Toplevel1:
                 key = localCode
             value = b' '.join(frames[i].split(b'|')[3].split(b'^')).decode()
             r['result'][key] = value
-        print('result: r',r)
+        print('result: r', r)
         while self.writing == True:
             time.sleep(1)
         self.writing = True
@@ -203,10 +206,25 @@ class Toplevel1:
             pass
         self.writing = False
 
-    def reader(self,frames):
+    def reader(self, frames):
+        print('reader: starting')
+
+        Datatime = frames[self.record_type['H']].split(b'|')[13]
+        hostIdentifier = b'ASTM-Host^V·6.61'
+        delimeters = b'\^&'
+        receiver = b'c111'
+        headerrType = b'TSDWN^REPLY'
+        header = b'|'.join([b'\x021H',delimeters,b'',b'',hostIdentifier,b'',b'',b'',b'',receiver,headerrType,b'P',b'1'
+                               ,Datatime]) + b'\r\x03'
+        fullheader = header + self.check_sum_creator(header[1:]) + b'\r\n'
+        print('reader: fullheader,',fullheader)
+
+        patient =  b'\x022P|1\r\x03'
+        fullpatient = patient + self.check_sum_creator(patient[1:]) + b'\r\n'
+
         id = frames[self.record_type['Q']].split(b'|')[2].split(b'^')[1].strip()
-        position = b'^'.join(frames[self.record_type['Q']].split(b'|')[2].split(b'^')[2:])
-        print('reader: id,',id)
+        # position = b'^'.join(frames[self.record_type['Q']].split(b'|')[2].split(b'^')[2:])
+        print('reader: id,', id)
         if id:
             all_tests = self.getSampleParameters(id.decode())
             print('reader: all_tests,', all_tests)
@@ -214,27 +232,30 @@ class Toplevel1:
             if all_tests and all_tests != 'nc':
                 for test in all_tests:
                     if test in self.g2l:
-                        required_tests.append(b'^^^' + test.encode() + b'^')
+                        required_tests.append(b'^^^' + self.g2l[test].encode())
             required_tests = b'\\'.join(required_tests)
-            print('reader: required tests,',required_tests)
+            print('reader: required tests,', required_tests)
         else:
             required_tests = False
         if required_tests:
             resp_frames = [
                 b'\x05',
-                b'\x021H|\^&||||||||||P||\x03' + self.check_sum_creator(b'1H|\^&||||||||||P||\x03') + b'\r\n',
-                b'\x022P|1\x03'+ self.check_sum_creator(b'2P|1\x03') + b'\r\n',
-                b'\x023O|1|'+id+b'|'+position+b'|'+required_tests+b'|R||||||N||||||||||||||Q\x03'+ self.check_sum_creator(b'3O|1|'+id+b'|'+position+b'|'+required_tests+b'|R||||||N||||||||||||||Q\x03') + b'\r\n',
-                b'\x024L|1|\x03' + self.check_sum_creator(b'4L|1|\x03') + b'\r\n',
+                fullheader,
+                fullpatient,
+                b'\x023O|1|' + id + b'||' + required_tests + b'|R||||||N||||||||||||||O\\Q\r\x03' + \
+                    self.check_sum_creator(b'\x023O|1|' + id + b'||' + required_tests + b'|R||||||N||||||||||||\
+                    ||O\\Q\r\x03') + b'\r\n',
+                b'\x024L|1|N\r\x03' + self.check_sum_creator(b'\x024L|1|N\r\x03') + b'\r\n',
                 b'\x04'
             ]
         else:
             resp_frames = [
                 b'\x05',
-                b'\x021H|\^&||||||||||P||\x03' + self.check_sum_creator(b'1H|\^&||||||||||P||\x03') + b'\r\n',
-                b'\x022P|1\x03' + self.check_sum_creator(b'2P|1\x03') + b'\r\n',
-                b'\x023O|1|' + id + b'|' + position + b'||R||||||N||||||||||||||Z\x03' + self.check_sum_creator(b'3O|1|' + id + b'|' + position + b'||R||||||N||||||||||||||Z\x03') + b'\r\n',
-                b'\x024L|1|\x03' + self.check_sum_creator(b'4L|1|\x03') + b'\r\n',
+                fullheader,
+                fullpatient,
+                b'\x023O|1|'+id+b'|||R||||||A||||||||||||||Z\r\03' + self.check_sum_creator(b'\x023O|1|'+id+b'||\
+                    |R||||||A||||||||||||||Z\r\03') + b'\r\n',
+                b'\x024L|1|N\r\x03' + self.check_sum_creator(b'\x024L|1|N\r\x03') + b'\r\n',
                 b'\x04'
             ]
         i = 0
@@ -248,15 +269,13 @@ class Toplevel1:
                 break
             while True:
                 print('reader: waiting')
-                # time.sleep(0.6)
-                # if self.port.in_waiting:
                 self.port.timeout = 8
                 d = self.port.read(1)
                 self.port.timeout = 1000000
-                print('reader: d',d)
+                print('reader: d', d)
                 if d == b'\x15':
                     c += 1
-                    if c>7:
+                    if c > 7:
                         print('reader: out of nacks')
                         self.port.write('\x04')
                         return
@@ -265,21 +284,22 @@ class Toplevel1:
                 elif d == b'\x06':
                     c = 0
                     print('reader: ACK response')
-                    i +=1
+                    i += 1
                     break
                 elif d == b'':
                     self.port.write('\x04')
                     print('Q_reply: Error there is no ACK from ' + self.device_name)
                     self.show('Q_reply: Error there is no ACK from ' + self.device_name)
                     return
-    def check_sum_creator(self,frame):
-        print('checksum_creator: frame,',frame)
+
+    def check_sum_creator(self, frame):
+        print('checksum_creator: frame,', frame)
         s = hex(sum(frame))
-        if len(s[2:])>=2:
-            print('checksum_creator: summation,',s[-2:].encode())
+        if len(s[2:]) >= 2:
+            print('checksum_creator: summation,', s[-2:].encode())
             return s[-2:].encode()
         else:
-            print('checksum_creator: summation,',b'0' + s[-1].encode())
+            print('checksum_creator: summation,', b'0' + s[-1].encode())
             return b'0' + s[-1].encode()
 
     # if the port is open it will stop repeated timer loap function
@@ -288,7 +308,7 @@ class Toplevel1:
     def disconnect(self):
         try:
             if self.port.is_open:
-                self.running =False
+                self.running = False
                 self.port.close()
                 self.show('disconnected')
                 self.connect_button.configure(state='enable')
@@ -300,7 +320,7 @@ class Toplevel1:
     # try to upload unuploaded tests
     def writer(self, result):
         self.last_result = result
-        print('writer: result,',self.last_result)
+        print('writer: result,', self.last_result)
         self.testset(self.last_result)
         self.attemptUpload()
 
@@ -324,7 +344,7 @@ class Toplevel1:
             # for the given barcode
             # note that test[1] is the barcode it self
             if parms:
-                print('attemptUpload: sample result string,',sample[2])
+                print('attemptUpload: sample result string,', sample[2])
                 string = sample[2][1:-1].split(',')
                 testlist = []
                 for test in string:
@@ -334,7 +354,7 @@ class Toplevel1:
                 samplelist.append(sample[0])
                 samplelist.append(sample[1])
                 samplelist.append(testlist)
-                print('attemptUpload: sample result object,',samplelist)
+                print('attemptUpload: sample result object,', samplelist)
                 self.upload(samplelist)
             else:
                 self.testseterror(sample[0])
@@ -343,18 +363,18 @@ class Toplevel1:
     # using barcode
     def getSampleParameters(self, sampleBarCode):
         sampleBarCode = str(sampleBarCode)
-        print('getSampleParameters:',self.sampleid + b'=' + sampleBarCode.encode())
+        print('getSampleParameters:', self.sampleid + b'=' + sampleBarCode.encode())
         try:
-            resp = requests.get(self.apigetter, params=self.sampleid + b'=' + sampleBarCode.encode(),timeout=2)
+            resp = requests.get(self.apigetter, params=self.sampleid + b'=' + sampleBarCode.encode(), timeout=2)
             if resp.status_code == 200:
                 respjson = resp.json()
-                print('getSampleParameters: respjson,',respjson)
+                print('getSampleParameters: respjson,', respjson)
                 if 'error' in respjson:
                     return False
                 required_tests = []
                 for i in respjson[0]['parameters']:
                     required_tests.append(i['code'])
-                print('getSampleParameters: required_tests,',required_tests)
+                print('getSampleParameters: required_tests,', required_tests)
                 return required_tests
             else:
                 print('getSampleParameters: invalid resp')
@@ -367,7 +387,7 @@ class Toplevel1:
     def upload(self, sample):
         print('uploader')
         record = {'id': sample[1], 'instrument_code': self.device_name}
-        print('uploader: recorde',record)
+        print('uploader: recorde', record)
         parameters = []
         for test in sample[2]:
             parameters.append(
@@ -379,23 +399,23 @@ class Toplevel1:
                 }
             )
         record['parameters'] = parameters
-        print('uploader: final record,',record)
+        print('uploader: final record,', record)
         try:
             resp = requests.post(self.apisetter, json=record)
             if resp.status_code == 200:
                 self.testsetuploaded(sample[0])
-                print('uloader: json response',resp.json())
+                print('uloader: json response', resp.json())
                 return 'done'
             else:
-                print('uploader: Error Status code',resp.status_code)
-                print('uploader: Error content',resp.content.decode())
+                print('uploader: Error Status code', resp.status_code)
+                print('uploader: Error content', resp.content.decode())
                 return 'connection error'
         except:
-                return 'upload: connection error'
+            return 'upload: connection error'
 
     # craete a connection
     def dbc(self, d=''):
-        print('dbc: query',d)
+        print('dbc: query', d)
         os.chdir(self.path + self.device_name)
         print('dbc: current working directory,', os.getcwd())
         if d:
@@ -575,7 +595,7 @@ class Toplevel1:
         for key in self.l2g:
             self.g2l[self.l2g[key]] = key
 
-        print('__init__: l2g,',self.l2g)
+        print('__init__: l2g,', self.l2g)
 
         self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)

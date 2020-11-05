@@ -32,6 +32,112 @@ class Toplevel1():
         self.cset()
         return True
 
+    # contact the LIMS api through a given url and gets the sample data
+    # using barcode
+    def getSampleParameters(self, sampleBarCode):
+        sampleBarCode = str(sampleBarCode)
+        print(self.sampleid + b'=' + sampleBarCode.encode())
+        try:
+            resp = requests.get(self.apigetter, params=self.sampleid + b'=' +
+                                sampleBarCode.encode(), timeout=2)
+            if resp.status_code == 200:
+                respjson = resp.json()
+                print(respjson)
+                if 'error' in respjson:
+                    return False
+                required_tests = []
+                for i in respjson[0]['parameters']:
+                    required_tests.append(i['code'])
+                print(required_tests)
+                return required_tests
+            else:
+                print('getSampleParameters: invalid resp')
+                return 'nc'
+        except:
+            print('getsampleParameters: error in requests')
+            return 'nc'
+
+    # upload the state of given test to uploaded
+    def testseterror(self, test):
+        # print('setting uploaded')
+        if self.dbc('update test set uploadstate = "e" where test_id = ' + str(test)):
+            return True
+        else:
+            return False
+            
+    # upload the state of given test to uploaded
+    def testsetuploaded(self, test):
+        # print('setting uploaded')
+        if self.dbc('update test set uploadstate = "y" where test_id = ' + str(test)):
+            return True
+        else:
+            return False
+
+    # uploads tests for the same api through different url
+    def upload(self, sample):
+        print('uploader')
+        record = {'id': sample[1], 'instrument_code': self.device_name}
+        print(record)
+        parameters = []
+        for test in sample[2]:
+            parameters.append(
+                {
+                    'parameter': list(test.keys())[0],
+                    'results': list(test.values())[0],
+                    'status': 'null',
+                    'flag': 'null'
+                }
+            )
+        record['parameters'] = parameters
+        print(record)
+        try:
+            resp = requests.post(self.apisetter, json=record)
+            if resp.status_code == 200:
+                self.testsetuploaded(sample[0])
+                print(resp.json())
+                return 'done'
+            else:
+                print(resp.status_code)
+                print(resp.content.decode())
+                return 'connection error'
+        except:
+            return 'upload: connection error'
+
+    # write clicked create connection
+    # and gets test results where the upload state is "n"
+    # which means not uploaded
+    def attemptUpload(self):
+        samples = self.dbc('select * from test where uploadstate = "n" order by created_at desc')
+        # for i in samples:
+            # print(i)
+            # print('\n')
+        if len(samples)==0:
+            return
+        for sample in samples:
+            parms = self.getSampleParameters(sample[1])
+
+            # this condition check is the test code it within the parms brought from the api LIMS
+            # for the given barcode
+            # note that test[1] is the barcode it self
+            if parms:
+                # print(sample[2])
+                string = sample[2][1:-1].split(',')
+                # print(string)
+                testlist = []
+                for test in string:
+                    test = test.split(':')
+                    # print(test)
+                    testlist.append({test[0].strip()[1:-1]: test[1].strip()[1:-1]})
+                # print(testlist)
+                samplelist = []
+                samplelist.append(sample[0])
+                samplelist.append(sample[1])
+                samplelist.append(testlist)
+                # print(samplelist)
+                self.upload(samplelist)
+            else:
+                self.testseterror(sample[0])
+
     # upload the last test result and
     # try to upload unuploaded tests
     def writer(self, result):

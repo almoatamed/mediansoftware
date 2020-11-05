@@ -162,7 +162,7 @@ class Toplevel1:
         try:
             resp = requests.post(self.apisetter, json=record)
             if resp.status_code == 200:
-                self.testsetuploader(sample[0])
+                self.testsetuploaded(sample[0])
                 print(resp.json())
                 return 'done'
             else:
@@ -188,7 +188,8 @@ class Toplevel1:
 
     # update counter where counter is used as the test id
     def cset(self):
-        self.dbc('update counter set count = ' + str(self.cget() + 1) + ' where id = 1 ')
+        self.dbc('update counter set count = ' + str(self.cget() + 1) + \
+             ' where id = 1 ')
         return True
 
     # gets counter
@@ -216,7 +217,7 @@ class Toplevel1:
             return False
 
     # upload the state of given test to uploaded
-    def testsetuploader(self, test):
+    def testsetuploaded(self, test):
         print('setting uploaded')
         if self.dbc('update test set uploadstate = "y" where test_id = ' + str(test)):
             return True
@@ -226,16 +227,16 @@ class Toplevel1:
     # upload the last test result and
     # try to upload unuploaded tests
     def writer(self, result):
-        self.last_result = result
-        print(self.last_result)
-        self.testset(self.last_result)
-        self.write_clicked()
+        print('Writer: result,',result)
+        self.testset(result)
+        self.attemptUpload()
 
     # write clicked create connection
     # and gets test results where the upload state is "n"
     # which means not uploaded
-    def write_clicked(self):
-        samples = self.dbc('select * from test where uploadstate = "n" order by created_at desc')
+    def attemptUpload(self):
+        samples = self.dbc('select * from test where uploadstate =\
+            "n" order by created_at desc')
         # for i in samples:
         #     print(i)
         #     print('\n')
@@ -244,9 +245,10 @@ class Toplevel1:
         for sample in samples:
             parms = self.getSampleParameters(sample[1])
             if parms == 'nc':
-                print('write_clicked: nc')
+                print('attemptUpload: nc')
                 return
-            # this condition check is the test code it within the parms brought from the api LIMS
+            # this condition check is the test code it within the parms
+            # brought from the api LIMS
             # for the given barcode
             # note that test[1] is the barcode it self
             if parms:
@@ -257,7 +259,8 @@ class Toplevel1:
                 for test in string:
                     test = test.split(':')
                     print(test)
-                    testlist.append({test[0].strip()[1:-1]: test[1].strip()[1:-1]})
+                    testlist.append({test[0].strip()[1:-1]: \
+                         test[1].strip()[1:-1]})
                 print(testlist)
                 samplelist = []
                 samplelist.append(sample[0])
@@ -341,7 +344,7 @@ class Toplevel1:
 
     # turns off the connect button and start the run function
     # this function only works if the connection button is active
-    def start1(self, p1):
+    def connect(self, p1):
         if self.connect_button.state()[0] == 'active':
             self.show('starting')
             self.run()
@@ -428,7 +431,7 @@ class Toplevel1:
         self.connect_button.place(relx=0.804, rely=0.34, height=25, width=76
                                   , bordermode='ignore')
         self.connect_button.configure(text='''connect''')
-        self.connect_button.bind('<Button-1>', lambda e: self.start1(e))
+        self.connect_button.bind('<Button-1>', lambda e: self.connect(e))
 
         self.disconnect_button = ttk.Button(self.connection_parameter_frame)
         self.disconnect_button.place(relx=0.804, rely=0.54, height=25, width=76
@@ -644,5 +647,5 @@ def _on_shiftmouse(event, widget):
             widget.xview_scroll(1, 'units')
 
 
-aia = Toplevel1()
-aia.root.mainloop()
+instance = Toplevel1()
+instance.root.mainloop()

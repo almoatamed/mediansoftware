@@ -194,7 +194,8 @@ class Toplevel1():
         sampleBarCode = str(sampleBarCode)
         print(self.sampleid + b'=' + sampleBarCode.encode())
         try:
-            resp = requests.get(self.apigetter, params=self.sampleid + b'=' + sampleBarCode.encode(),timeout=2)
+            resp = requests.get(self.apigetter, params=self.sampleid + b'=' + \
+                 sampleBarCode.encode(),timeout=2)
             if resp.status_code == 200:
                 respjson = resp.json()
                 print(respjson)
@@ -232,7 +233,7 @@ class Toplevel1():
         try:
             resp = requests.post(self.apisetter, json=record)
             if resp.status_code == 200:
-                self.testsetuploader(sample[0])
+                self.testsetuploaded(sample[0])
                 print(resp.json())
                 return 'done'
             else:
@@ -278,7 +279,7 @@ class Toplevel1():
 
 
     # upload the state of given test to uploaded
-    def testsetuploader(self,test):
+    def testsetuploaded(self,test):
         # print('setting uploaded')
         if self.dbc('update test set uploadstate = "y" where test_id = ' + str(test)):
             return True
@@ -299,12 +300,12 @@ class Toplevel1():
         self.last_result = result
         # print(self.last_result)
         self.testset(self.last_result)
-        self.write_clicked()
+        self.attemptUpload()
 
     # write clicked create connection
     # and gets test results where the upload state is "n"
     # which means not uploaded
-    def write_clicked(self):
+    def attemptUpload(self):
         samples = self.dbc('select * from test where uploadstate = "n" order by created_at desc')
         # for i in samples:
             # print(i)
@@ -338,7 +339,7 @@ class Toplevel1():
 
     # turns off the connect button and start the run function
     # this function only works if the connection button is active
-    def start1(self,p1):
+    def connect(self,p1):
         # print('starting one')
         if self.connect_button.state()[0] == 'active' :
             self.show('starting')
@@ -419,7 +420,7 @@ class Toplevel1():
         self.connect_button.place(relx=0.804, rely=0.34, height=25, width=76
                                   , bordermode='ignore')
         self.connect_button.configure(text='''connect''')
-        self.connect_button.configure(command=lambda e='': self.start1(e))
+        self.connect_button.configure(command=lambda e='': self.connect(e))
 
         self.disconnect_button = ttk.Button(self.connection_parameter_frame)
         self.disconnect_button.place(relx=0.804, rely=0.54, height=25, width=76
@@ -635,6 +636,6 @@ def _on_shiftmouse(event, widget):
             widget.xview_scroll(1, 'units')
 
 #
-aia = Toplevel1()
-aia.root.mainloop()
+instance = Toplevel1()
+instance.root.mainloop()
 
