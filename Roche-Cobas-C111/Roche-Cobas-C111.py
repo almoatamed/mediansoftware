@@ -217,13 +217,13 @@ class Toplevel1:
         header = b'|'.join([b'\x021H',delimeters,b'',b'',hostIdentifier,b'',b'',b'',b'',receiver,headerrType,b'P',b'1'
                                ,Datatime]) + b'\r\x03'
         fullheader = header + self.check_sum_creator(header[1:]) + b'\r\n'
-        print('reader: fullheader,',fullheader)
 
         patient =  b'\x022P|1\r\x03'
         fullpatient = patient + self.check_sum_creator(patient[1:]) + b'\r\n'
 
+        print('reader: fullheader,',fullheader)
         id = frames[self.record_type['Q']].split(b'|')[2].split(b'^')[1].strip()
-        # position = b'^'.join(frames[self.record_type['Q']].split(b'|')[2].split(b'^')[2:])
+        position = b'^'.join(frames[self.record_type['Q']].split(b'|')[2].split(b'^')[2:])
         print('reader: id,', id)
         if id:
             all_tests = self.getSampleParameters(id.decode())
@@ -232,7 +232,7 @@ class Toplevel1:
             if all_tests and all_tests != 'nc':
                 for test in all_tests:
                     if test in self.g2l:
-                        required_tests.append(b'^^^' + self.g2l[test].encode())
+                        required_tests.append(b'^^^' + test.encode() + b'^')
             required_tests = b'\\'.join(required_tests)
             print('reader: required tests,', required_tests)
         else:
@@ -240,22 +240,22 @@ class Toplevel1:
         if required_tests:
             resp_frames = [
                 b'\x05',
-                fullheader,
-                fullpatient,
-                b'\x023O|1|' + id + b'||' + required_tests + b'|R||||||N||||||||||||||O\\Q\r\x03' + \
-                    self.check_sum_creator(b'\x023O|1|' + id + b'||' + required_tests + b'|R||||||N||||||||||||\
-                    ||O\\Q\r\x03') + b'\r\n',
-                b'\x024L|1|N\r\x03' + self.check_sum_creator(b'\x024L|1|N\r\x03') + b'\r\n',
+                b'\x021H|\^&||||||||||P||\x03' + self.check_sum_creator(b'1H|\^&||||||||||P||\x03') + b'\r\n',
+                b'\x022P|1\x03' + self.check_sum_creator(b'2P|1\x03') + b'\r\n',
+                b'\x023O|1|' + id + b'|' + position + b'|' + required_tests + b'|R||||||N||||||||||||||Q\x03' + \
+                    self.check_sum_creator(b'3O|1|' + id + b'|' + position + b'|' + required_tests + \
+                    b'|R||||||N||||||||||||||Q\x03') + b'\r\n',
+                b'\x024L|1|\x03' + self.check_sum_creator(b'4L|1|\x03') + b'\r\n',
                 b'\x04'
             ]
         else:
             resp_frames = [
                 b'\x05',
-                fullheader,
-                fullpatient,
-                b'\x023O|1|'+id+b'|||R||||||A||||||||||||||Z\r\03' + self.check_sum_creator(b'\x023O|1|'+id+b'||\
-                    |R||||||A||||||||||||||Z\r\03') + b'\r\n',
-                b'\x024L|1|N\r\x03' + self.check_sum_creator(b'\x024L|1|N\r\x03') + b'\r\n',
+                b'\x021H|\^&||||||||||P||\x03' + self.check_sum_creator(b'1H|\^&||||||||||P||\x03') + b'\r\n',
+                b'\x022P|1\x03' + self.check_sum_creator(b'2P|1\x03') + b'\r\n',
+                b'\x023O|1|' + id + b'|' + position + b'||R||||||N||||||||||||||Z\x03' + self.check_sum_creator(
+                    b'3O|1|' + id + b'|' + position + b'||R||||||N||||||||||||||Z\x03') + b'\r\n',
+                b'\x024L|1|\x03' + self.check_sum_creator(b'4L|1|\x03') + b'\r\n',
                 b'\x04'
             ]
         i = 0
@@ -450,7 +450,8 @@ class Toplevel1:
     # upload the state of given test to uploaded
     def testseterror(self, test):
         print('setting uploaded')
-        if self.dbc('update test set uploadstate = "e" where test_id = ' + str(test)):
+        if self.dbc('update test set uploadstate =\
+             "e" where test_id = ' + str(test)):
             return True
         else:
             return False

@@ -1,0 +1,24 @@
+{
+    "id":"123412341234", 
+    "instrument_code":"AIA360_1",
+    "parameters":[
+        {
+            "parameter":"FT4",
+            "result":"7.3",
+            "status":"null",
+            "flag":"null"
+        },
+        {
+            "parameter": "FT3",
+            "result": "23.3",
+            "status": "null",
+            "flag": "null"
+        },
+        {
+            "parameter": "WBC",
+            "result": "44.3",
+            "status": "null",
+            "flag": "null"
+        }
+    ]
+}
