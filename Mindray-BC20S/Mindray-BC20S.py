@@ -11,7 +11,7 @@ import socket
 import sqlite3
 py3 = True
 
-
+# repetitivve calass
 class RepeatedTimer(object):
     def __init__(self, interval, function, *args, **kwargs):
         self._timer     = None
