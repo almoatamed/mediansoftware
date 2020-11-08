@@ -70,12 +70,13 @@ class Toplevel1:
     # reutuns an instance of the serial connection
     # the serial connection established is
     # based on the parameters specified at the begenning of the class
-    def get_port(self):
+    def getPort(self):
         ports = list(serial.tools.list_ports.comports())
         for p in ports:
             if self.port_entry.get() in p.description:
                 try:
-                    s = serial.Serial(p.device, self.rate, self.bitlength, self.parity, self.stopbit)
+                    s = serial.Serial(p.device, self.rate, self.bitlength,
+                     self.parity, self.stopbit)
                 except:
                     self.show('ERROR: error while trying to open the port')
                     return None
@@ -92,7 +93,7 @@ class Toplevel1:
     # and start the repeated timer for loap function instance with a given repeating interval
     def run(self):
         self.connect_button.configure(state='disabled')
-        self.port = self.get_port()
+        self.port = self.getPort()
         if self.port:
             self.show('connecting...')
             self.disconnect_button.configure(state='enable')

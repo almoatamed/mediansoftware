@@ -69,7 +69,7 @@ class Toplevel1:
     # reutuns an instance of the serial connection
     # the serial connection established is
     # based on the parameters specified at the begenning of the class
-    def get_port(self):
+    def getPort(self):
         ports = list(serial.tools.list_ports.comports())
         for p in ports:
             if self.port_entry.get() in p.description:
@@ -91,12 +91,12 @@ class Toplevel1:
     # and start the repeated timer for loap function instance with a given repeating interval
     def run(self):
         self.connect_button.configure(state= 'disabled')
-        self.port = self.get_port()
+        self.port = self.getPort()
         if self.port:
             self.show('connecting...')
             self.disconnect_button.configure(state='enable')
             self.frames = [''.encode('ascii')]
-            self.T_Thread = RepeatedTimer(self.repeatingInterval,self.looper)
+            self.timerThread = RepeatedTimer(self.repeatingInterval,self.looper)
         else:
             self.show('ERROR: there is no connection')
             self.connect_button.configure(state='enable')
@@ -107,7 +107,7 @@ class Toplevel1:
     def disconnect(self):
         try:
             if self.port.is_open:
-                self.T_Thread.stop()
+                self.timerThread.stop()
                 self.port.close()
                 self.show('disconnected')
                 self.connect_button.configure(state='enable')

@@ -1,12 +1,208 @@
 import tkinter as tk
+import socket
+import serial
+import os
 import tkinter.ttk as ttk
 import sys
 import platform
+import requests
+import sqlite3
 
 py3 = True
 
 class Toplevel1:
     # initializa interface and create database if not existing
+
+    # update counter where counter is used as the test id
+    def cset(self):
+        self.dbc('update counter set count = ' + str(self.cget() + 1) +
+                 ' where id = 1 ')
+        return True
+
+    # gets counter
+    def cget(self):
+        x = self.dbc('select count from counter where id = 1 ')[0][0]
+        return x
+
+    # inserts test that currespond to a given barcode to the database
+    def testset(self, result):
+        self.dbc('insert into test(test_id,barcodeid,results) values('
+                 '' + str(self.cget()) + ',"' + result['id'] + '","' + str(result['result']) + '");')
+        self.cset()
+        return True
+
+    # contact the LIMS api through a given url and gets the sample data
+    # using barcode
+    def getSampleParameters(self, sampleBarCode):
+        sampleBarCode = str(sampleBarCode)
+        print(self.sampleid + b'=' + sampleBarCode.encode())
+        try:
+            resp = requests.get(self.apigetter, params=self.sampleid + b'=' +
+                                sampleBarCode.encode(), timeout=2)
+            if resp.status_code == 200:
+                respjson = resp.json()
+                print(respjson)
+                if 'error' in respjson:
+                    return False
+                required_tests = []
+                for i in respjson[0]['parameters']:
+                    required_tests.append(i['code'])
+                print(required_tests)
+                return required_tests
+            else:
+                print('getSampleParameters: invalid resp')
+                return 'nc'
+        except:
+            print('getsampleParameters: error in requests')
+            return 'nc'
+
+    # upload the state of given test to uploaded
+    def testseterror(self, test):
+        # print('setting uploaded')
+        if self.dbc('update test set uploadstate = "e" where test_id = ' + str(test)):
+            return True
+        else:
+            return False
+
+    # upload the state of given test to uploaded
+    def testsetuploaded(self, test):
+        # print('setting uploaded')
+        if self.dbc('update test set uploadstate = "y" where test_id = ' + str(test)):
+            return True
+        else:
+            return False
+
+    # uploads tests for the same api through different url
+    def upload(self, sample):
+        print('uploader')
+        record = {'id': sample[1], 'instrument_code': self.device_name}
+        print(record)
+        parameters = []
+        for test in sample[2]:
+            parameters.append(
+                {
+                    'parameter': list(test.keys())[0],
+                    'results': list(test.values())[0],
+                    'status': 'null',
+                    'flag': 'null'
+                }
+            )
+        record['parameters'] = parameters
+        print(record)
+        try:
+            resp = requests.post(self.apisetter, json=record)
+            if resp.status_code == 200:
+                self.testsetuploaded(sample[0])
+                print(resp.json())
+                return 'done'
+            else:
+                print(resp.status_code)
+                print(resp.content.decode())
+                return 'connection error'
+        except:
+            return 'upload: connection error'
+
+    # write clicked create connection
+    # and gets test results where the upload state is "n"
+    # which means not uploaded
+    def attemptUpload(self):
+        samples = self.dbc(
+            'select * from test where uploadstate = "n" order by created_at desc')
+        # for i in samples:
+        # print(i)
+        # print('\n')
+        if len(samples) == 0:
+            return
+        for sample in samples:
+            parms = self.getSampleParameters(sample[1])
+
+            # this condition check is the test code it within the parms brought from the api LIMS
+            # for the given barcode
+            # note that test[1] is the barcode it self
+            if parms:
+                # print(sample[2])
+                string = sample[2][1:-1].split(',')
+                # print(string)
+                testlist = []
+                for test in string:
+                    test = test.split(':')
+                    # print(test)
+                    testlist.append(
+                        {test[0].strip()[1:-1]: test[1].strip()[1:-1]})
+                # print(testlist)
+                samplelist = []
+                samplelist.append(sample[0])
+                samplelist.append(sample[1])
+                samplelist.append(testlist)
+                # print(samplelist)
+                self.upload(samplelist)
+            else:
+                self.testseterror(sample[0])
+
+    # upload the last test result and
+    # try to upload unuploaded tests
+    def writer(self, result):
+        print('Writer: result,', result)
+        self.testset(result)
+        self.attemptUpload()
+
+    # craete a connection
+    def dbc(self, d=''):
+        # print(d)
+        os.chdir(self.path + self.device_name)
+        # print('dbc',os.getcwd())
+        if d:
+            with sqlite3.connect('median.db') as cnxn:
+                # print('first with')
+                c = cnxn.cursor()
+                x = list(c.execute(d))
+                c.close()
+            return x
+
+    def run(self):
+        self.connect_button.configure(state='disabled')
+        self.show('connecting')
+        self.port = self.getPort()
+
+    # turns off the connect button and start the run function
+    # this function only works if the connection button is active
+    def connect(self, p1):
+        # print('starting one')
+        if self.connect_button.state()[0] == 'active':
+            self.show('starting')
+            self.run()
+
+    # show used to # print strings on the connection state scrolled text box
+    def show(self, string):
+        self.connection_state_text.configure(state='normal')
+        self.connection_state_text.insert(tk.END, '\n'+string)
+        self.connection_state_text.configure(state='disabled')
+
+    # gets the right ip
+    def getIP(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        self.ip = s.getsockname()[0]
+        s.close()
+
+    # exit2 is basically a program close button it check is the exit button is working and then
+    # it calls the disconnect and the root.destroy functions
+    # and finally close the program with sys.close
+    def exit2(self, p1):
+        if self.exit_btn.state()[0] == 'active':
+            self.disconnect()
+            self.root.destroy()
+            sys.exit()
+
+    # list available port in the dropbox specified for that
+    def initiate_port_entry(self):
+        x = list(serial.tools.list_ports.comports())
+        print('initiate_port_entry: the list of ports', len(x))
+        list_values = []
+        for i in x:
+            list_values.append(i.description)
+        self.port_entry.configure(values=list_values)
+
     def __init__(self):
         self.root = tk.Tk()
         '''This class configures and populates the toplevel window.

@@ -74,7 +74,7 @@ class Toplevel1:
     # reutuns an instance of the serial connection
     # the serial connection established is
     # based on the parameters specified at the begenning of the class
-    def get_port(self):
+    def getPort(self):
         ports = list(serial.tools.list_ports.comports())
         for p in ports:
             if self.port_entry.get() in p.description:
@@ -97,7 +97,7 @@ class Toplevel1:
     def run(self):
         print('run: running ')
         self.connect_button.configure(state='disabled')
-        self.port = self.get_port()
+        self.port = self.getPort()
         if self.port:
             print('run: port established')
             self.show('connecting...')

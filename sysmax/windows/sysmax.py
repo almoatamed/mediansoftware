@@ -439,7 +439,7 @@ class Toplevel1():
         self.port_description = self.port_entry.get()
 
     '''DO NOT ADJUST FOR SERIALS; this is respnsible for openning serial ports.'''
-    def get_port(self, description):
+    def getPort(self, description):
         self.set()
         ports = list(serial.tools.list_ports.comports())
         for p in ports:
@@ -465,11 +465,11 @@ class Toplevel1():
         print('running')
         self.connect_button.configure(state= 'disabled')
         self.db_button.configure(state= 'disabled')
-        self.port = self.get_port(self.port_description)
+        self.port = self.getPort(self.port_description)
         if self.state_of_connection and self.port:
             self.show('\n' + 'connecting...')
             self.disconnect_button.configure(state='enable')
-            self.T_Thread = repeatedTimer.RepeatedTimer(0.2,self.looper)
+            self.timerThread = repeatedTimer.RepeatedTimer(0.2,self.looper)
         else:
             self.show( '\n' + 'ERROR, there is no connection\n')
             self.connect_button.configure(state='enable')
@@ -479,7 +479,7 @@ class Toplevel1():
         try:
             if self.port.is_open:
                 self.state_of_connection = False
-                self.T_Thread.stop()
+                self.timerThread.stop()
                 self.port.close()
                 self.show( '\ndisconnected')
                 self.connect_button.configure(state='enable')
