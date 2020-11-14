@@ -22,7 +22,7 @@ class Db_Update():
     def read_parameters(self):
         try:
             self.main_win.set()
-            db = open(self.main_win.file_path + '/'+self.main_win.device_name+'/run/' + 'db_parameters', 'rb')
+            db = open(self.main_win.file_path + '/'+self.main_win.instrumentName+'/run/' + 'db_parameters', 'rb')
             x = db.read()
             x = [i.decode() for i in x.split(b'|')]
             self.main_win.server = x[0]
@@ -121,10 +121,10 @@ class Database_setting(threading.Thread):
         self.main_win.set()
         self.main_win.path_changer('main')
         self.main_win.path_changer('run')
-        db = open(self.main_win.file_path + '/'+self.main_win.device_name+'/run/' + 'db_parameters', 'wb+')
+        db = open(self.main_win.file_path + '/'+self.main_win.instrumentName+'/run/' + 'db_parameters', 'wb+')
         db.write(b'')
         db.close()
-        db = open(self.main_win.file_path + '/'+self.main_win.device_name+'/run/' + 'db_parameters', 'ab+')
+        db = open(self.main_win.file_path + '/'+self.main_win.instrumentName+'/run/' + 'db_parameters', 'ab+')
         parms =[i.encode() for i in [self.server_entry.get(),self.psw_entry.get(),self.table_entry.get(),self.uid_entry.get(),self.database_entry.get()]]
         db.write(b'|'.join(parms))
         db.close()
@@ -137,7 +137,7 @@ class Database_setting(threading.Thread):
     def database_initialize(self):
         try:
             self.main_win.set()
-            db = open(self.main_win.file_path + '/'+self.main_win.device_name+'/run/' + 'db_parameters', 'rb')
+            db = open(self.main_win.file_path + '/'+self.main_win.instrumentName+'/run/' + 'db_parameters', 'rb')
             x = db.read()
             x = [i.decode() for i in x.split(b'|')]
             self.server_entry.insert(0,x[0])
@@ -378,7 +378,7 @@ class Database_setting(threading.Thread):
 
 
 class Toplevel1():
-    device_name = 'sysmax'
+    instrumentName = 'sysmax'
     psw = ''
     server = ''
     database = ''
@@ -395,7 +395,7 @@ class Toplevel1():
 
     '''DO NOT ADJUST FOR ALL; responsible for creating result dictionary by reading result file'''
     def resultReader(self,file_name):
-        file = open(self.file_path + '/' + self.device_name + '/' + file_name + '.txt', 'r')
+        file = open(self.file_path + '/' + self.instrumentName + '/' + file_name + '.txt', 'r')
         lines = file.read()
         lines = lines.split('\n')
         string_to_write = {}
@@ -429,10 +429,10 @@ class Toplevel1():
     def path_changer(self, dir):
         if dir == 'main':
             self.set()
-            self.directory_creater_and_changer(self.device_name, '')
+            self.directory_creater_and_changer(self.instrumentName, '')
         if dir == 'run':
             self.set()
-            self.directory_creater_and_changer('run', '/' + self.device_name)
+            self.directory_creater_and_changer('run', '/' + self.instrumentName)
 
     # endregion directory linux
 
@@ -500,7 +500,7 @@ class Toplevel1():
     '''
     def read_unwritten_results(self):
         try:
-            new_file = open(self.file_path + '/' + self.device_name + '/' + '/run/unwritten_results', 'r')
+            new_file = open(self.file_path + '/' + self.instrumentName + '/' + '/run/unwritten_results', 'r')
             self.unwritten_results = new_file.readlines()
             self.unwritten_results = [i[:-1] for i in self.unwritten_results]
             new_file.close()
@@ -514,7 +514,7 @@ class Toplevel1():
         self.db_writer.read_parameters()
         self.db_writer.run()
         lines = '\n'.join(self.unwritten_results)
-        new_file = open(self.file_path + '/'+self.device_name+'/' + '/run/unwritten_results','w+' )
+        new_file = open(self.file_path + '/'+self.instrumentName+'/' + '/run/unwritten_results','w+' )
         new_file.write(lines)
         new_file.close()
 
@@ -527,11 +527,11 @@ class Toplevel1():
         self.last_result = result
         self.last_result['ID'] = '127'
         file_name = self.last_result['ID']
-        new_file = open(self.file_path + '/'+self.device_name+'/' + str(file_name) + '.txt', 'w+')
+        new_file = open(self.file_path + '/'+self.instrumentName+'/' + str(file_name) + '.txt', 'w+')
         for i in self.last_result:
             new_file.write(i + ':' + self.last_result[i] + '\n')
         new_file.close()
-        new_file = open(self.file_path + '/'+self.device_name+'/' + 'run/unwritten_results','a+' )
+        new_file = open(self.file_path + '/'+self.instrumentName+'/' + 'run/unwritten_results','a+' )
         print("writer: result", result)
         new_file.write(self.last_result['ID'] + '\n\n')
         new_file.close()
@@ -631,7 +631,7 @@ class Toplevel1():
         [('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
-        self.root.title(self.device_name)
+        self.root.title(self.instrumentName)
         self.root.configure(background="#d9d9d9")
         self.root.configure(highlightbackground="#d9d9d9")
         self.root.configure(highlightcolor="black")

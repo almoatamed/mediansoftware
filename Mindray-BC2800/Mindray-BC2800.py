@@ -45,7 +45,7 @@ class RepeatedTimer(object):
 
 class Toplevel1:
     # the device name
-    device_name = 'Mindray-BC2800'
+    instrumentName = 'Mindray-BC2800'
 
     frames = [''.encode('ascii')]
     repeatingInterval = 0.2
@@ -146,7 +146,7 @@ class Toplevel1:
     # uploads tests for the same api through different url
     def upload(self, sample):
         print('uploader')
-        record = {'id': sample[1], 'instrument_code': self.device_name}
+        record = {'id': sample[1], 'instrument_code': self.instrumentName}
         print(record)
         parameters = []
         for test in sample[2]:
@@ -177,7 +177,7 @@ class Toplevel1:
     # craete a connection
     def dbc(self, d=''):
         # print(d)
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
         # print('dbc', os.getcwd())
         if d:
             with sqlite3.connect('median.db') as cnxn:
@@ -211,7 +211,7 @@ class Toplevel1:
 
     # upload the state of given test to uploaded
     def testseterror(self, test):
-        print('setting uploaded')
+        print('testsetError: sample not recnized, setting status to E')
         if self.dbc('update test set uploadstate = "e" where test_id = ' + str(test)):
             return True
         else:
@@ -288,6 +288,7 @@ class Toplevel1:
                 self.string1 = b''
             while True:
                 d = self.port.read(1)
+                print('looper: byte d,',d)
                 if not self.running:
                     return False
                 if d == b'\x10':
@@ -401,7 +402,7 @@ class Toplevel1:
         [('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
-        self.root.title(self.device_name)
+        self.root.title(self.instrumentName)
         self.root.configure(background="#d9d9d9")
         self.root.configure(highlightbackground="#d9d9d9")
         self.root.configure(highlightcolor="black")
@@ -475,10 +476,10 @@ class Toplevel1:
         self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
-            os.mkdir(self.device_name)
+            os.mkdir(self.instrumentName)
         except FileExistsError:
             pass
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
 
         self.port_entry.insert(0, 'USB-SERIAL CH340')
 

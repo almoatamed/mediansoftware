@@ -43,7 +43,7 @@ class RepeatedTimer(object):
 
 class Toplevel1:
     # the device name
-    device_name = 'Roche-Cobas-Integra-400-Plus'
+    instrumentName = 'Roche-Cobas-Integra-400-Plus'
 
     results = {}
     last_result = {}
@@ -332,7 +332,7 @@ class Toplevel1:
                 return False
             print('receiving msg')
             print('syncSC: checksum, ',message[0:-6], int(message.split(self.LF)[-3][0:3].replace(b' ', b'')))
-            if not self.check_sum(message[0:-6], int(message.split(self.LF)[-3][0:3].replace(b' ',b''))):
+            if not self.checkSum(message[0:-6], int(message.split(self.LF)[-3][0:3].replace(b' ',b''))):
                 if x == 7:
                     return False
                 print('checksum error')
@@ -350,14 +350,14 @@ class Toplevel1:
             print('sendRecv: sending message', sendmsg)
             scSendMsg = sendmsg + str(self.SC).encode() + b'\x0A'
             print('sendRecv: sending message with SC', scSendMsg)
-            cksmSendMsg = self.check_sum_creator(scSendMsg)
+            cksmSendMsg = self.checkSumCreator(scSendMsg)
             print('sendRecv: sending message with CkSM', cksmSendMsg)
             self.port.write(cksmSendMsg)
             print('sendRecv: receiving msg')
             message = self.messageReader()
             if not message:
                 return False
-            if not self.check_sum(message[0:-6], int(message.split(self.LF)[-3][0:3].replace(b' ',b''))):
+            if not self.checkSum(message[0:-6], int(message.split(self.LF)[-3][0:3].replace(b' ',b''))):
                 if x == 7:
                     return False
                 print('checksum error')
@@ -406,12 +406,12 @@ class Toplevel1:
             self.show('ERROR: there is no port to be closed')
 
     # creating check sum for given serial message
-    def check_sum_creator(self, msg):
+    def checkSumCreator(self, msg):
         chksum = str(sum(msg) % 1000).encode()
         return msg + b'\x20'*(3-len(chksum)) + chksum + b'\x0A\x04\x0A'
 
     # check the check sume for given message
-    def check_sum(self, message, checksum):
+    def checkSum(self, message, checksum):
         print('checksum: message',message)
         print('checksum:',(sum(message) % 1000),checksum)
         return (sum(message) % 1000) == checksum
@@ -486,7 +486,7 @@ class Toplevel1:
     # uploads tests for the same api through different url
     def upload(self, sample):
         print('uploader')
-        record = {'id': sample[1], 'instrument_code': self.device_name}
+        record = {'id': sample[1], 'instrument_code': self.instrumentName}
         print('uploader: recorde',record)
         parameters = []
         for test in sample[2]:
@@ -516,7 +516,7 @@ class Toplevel1:
     # craete a connection
     def dbc(self, d=''):
         print('dbc: query',d)
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
         print('dbc: current working directory,', os.getcwd())
         if d:
             with sqlite3.connect('median.db') as cnxn:
@@ -621,7 +621,7 @@ class Toplevel1:
         [('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
-        self.root.title(self.device_name)
+        self.root.title(self.instrumentName)
         self.root.configure(background="#d9d9d9")
         self.root.configure(highlightbackground="#d9d9d9")
         self.root.configure(highlightcolor="black")
@@ -700,10 +700,10 @@ class Toplevel1:
         self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
-            os.mkdir(self.device_name)
+            os.mkdir(self.instrumentName)
         except FileExistsError:
             pass
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
 
         self.port_entry.insert(0, 'USB-SERIAL CH340')
 

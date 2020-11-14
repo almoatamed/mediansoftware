@@ -43,7 +43,7 @@ class RepeatedTimer(object):
 
 class Toplevel1:
     # the device name
-    device_name = 'Tosoh-AIA900'
+    instrumentName = 'Tosoh-AIA900'
 
     frames = [''.encode('ascii')]
     repeatingInterval = 0.2
@@ -95,6 +95,7 @@ class Toplevel1:
             self.show('connecting...')
             self.disconnect_button.configure(state='enable')
             self.frames = [''.encode('ascii')]
+            self.handling = False
             self.timerThread = RepeatedTimer(self.repeatingInterval, self.looper)
         else:
             self.show('ERROR: there is no connection')
@@ -105,12 +106,14 @@ class Toplevel1:
     # finally disabled the disconnect button
     def disconnect(self):
         try:
+            self.timerThread.stop()
+            self.show('disconnected')
+            self.connect_button.configure(state='enable')
+            self.disconnect_button.configure(state='disable')
+            self.handling = True
             if self.port.is_open:
-                self.timerThread.stop()
+                print('closing serial')
                 self.port.close()
-                self.show('disconnected')
-                self.connect_button.configure(state='enable')
-                self.disconnect_button.configure(state='disable')
         except:
             self.show('ERROR: there is no port to be closed')
 
@@ -141,7 +144,7 @@ class Toplevel1:
     # uploads tests for the same api through different url
     def upload(self, sample):
         print('uploader')
-        record = {'id': sample[1], 'instrument_code': self.device_name}
+        record = {'id': sample[1], 'instrument_code': self.instrumentName}
         print(record)
         parameters = []
         for test in sample[2]:
@@ -171,7 +174,7 @@ class Toplevel1:
     # craete a connection
     def dbc(self, d=''):
         print(d)
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
         print('dbc', os.getcwd())
         if d:
             with sqlite3.connect('median.db') as cnxn:
@@ -394,20 +397,20 @@ class Toplevel1:
     }
 
     '''responsible for extracting ID from query and calling the properiate reply'''
-    def reader(self):
-        print('q_reply')
+    def Q_handler(self):
+        print('Q_handler')
         Q_Records = self.frames[self.record_type['Q']].split(b'|')
         Q_IDs = []
         for record in Q_Records[2].split(b'^'):
             if record:
                 Q_IDs.append(record.decode())
-        print('reader: Q_ids,',Q_IDs)
+        print('Q_handler: Q_ids,',Q_IDs)
         if 'ALL' in Q_IDs:
-            print('reader: all')
+            print('Q_handler: all')
             self.Q_reply('all')
         elif Q_IDs:
             for ID in Q_IDs:
-                print('reader: ID', ID)
+                print('Q_handler: ID', ID)
                 self.Q_reply(ID)
     '''responsible for uploading patient info and checking for device'''
     def Q_reply(self,ID):
@@ -415,27 +418,32 @@ class Toplevel1:
         if ID == 'all':
             print('Q_reply: all')
             replies = [b'\x05',
-                       b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||\r\x03' + self.check_sum_creator(b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||') + b'\r\n',
-                       b'\x022L|1\r\x03'+self.check_sum_creator(b'\x022L|1')+b'\r\n',
-                       b'\x04']
+                        b'\x021H|\x5C^&|||' + self.instrumentName.encode() + \
+                           b'|||||||||\r\x03' + \
+                            self.checksumCreator(b'\x021H|\x5C^&|||' + \
+                            self.instrumentName.encode()+b'|||||||||') + b'\r\n',
+                        b'\x022L|1\r\x03' + \
+                            self.checksumCreator(b'\x022L|1')+b'\r\n',
+                        b'\x04']
         else:
             print('Q_reply:',ID)
             Order = self.order(ID)
             print("Q_reply: Order,",Order)
             if not Order:
                 replies = [b'\x05',
-                           b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||\r\x03' + self.check_sum_creator(b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||') + b'\r\n',
-                           b'\x022Q|1|^' + ID.encode() + b'||ALL\r\x03' + self.check_sum_creator(b'\x022Q|1|^' + ID.encode() + b'||ALL') + b'\r\n',
-                           b'\x023L|1\r\x03'+self.check_sum_creator(b'\x023L|1')+b'\r\n',
+                           b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||\r\x03' + self.checksumCreator(b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||') + b'\r\n',
+                           b'\x022Q|1|^' + ID.encode() + b'||ALL\r\x03' + self.checksumCreator(b'\x022Q|1|^' + ID.encode() + b'||ALL') + b'\r\n',
+                           b'\x023L|1\r\x03'+self.checksumCreator(b'\x023L|1')+b'\r\n',
                            b'\x04']
             else:
                 replies = [b'\x05',
-                           b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||\r\x03' + self.check_sum_creator(b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||') + b'\r\n',
-                           b'\x022P|1|' + ID.encode() + b'||||||\r\x03' + self.check_sum_creator(b'\x022P|1|' + ID.encode() + b'||||||') + b'\r\n',
-                           Order + b'\r\x03' + self.check_sum_creator(Order) + b'\r\n',
-                           b'\x024L|1\r\x03'+self.check_sum_creator(b'\x024L|1')+b'\r\n',
+                           b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||\r\x03' + self.checksumCreator(b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||') + b'\r\n',
+                           b'\x022P|1|' + ID.encode() + b'||||||\r\x03' + self.checksumCreator(b'\x022P|1|' + ID.encode() + b'||||||') + b'\r\n',
+                           Order + b'\r\x03' + self.checksumCreator(Order) + b'\r\n',
+                           b'\x024L|1\r\x03'+self.checksumCreator(b'\x024L|1')+b'\r\n',
                            b'\x04']
         i = 0
+        c = 0
         print("Q_reply: replies", replies)
         while True:
             self.port.write(replies[i])
@@ -448,19 +456,28 @@ class Toplevel1:
                 print('waiting')
                 # time.sleep(0.6)
                 # if self.port.in_waiting:
+                self.port.timeout = 5
                 d = self.port.read(1)
+                self.port.timeout = 1e10
                 print('Q_reply: d',d)
                 if d == b'\x15':
+                    c += 1
+                    if c == 5:
+                        self.show('Q_reply: Error, error all responses from insttrument are NACK')
+                        print('Q_reply: error, nack message received more then four times')
+                        return
                     print('Q_reply: !!!nack!!!')
                     break
                 elif d == b'\x06':
+                    c= 0
                     print('Q_reply: ACK response')
                     i +=1
                     break
                 if time.time() - start > 4:
-                    print('Q_reply: Error there is no ACK from ' + self.device_name)
-                    self.show('Q_reply: Error there is no ACK from ' + self.device_name)
+                    print('Q_reply: Error there is no ACK from ' + self.instrumentName)
+                    self.show('Q_reply: Error there is no ACK from ' + self.instrumentName)
                     return
+                    
     '''responsible for graping test query from database'''
     def order(self,ID):
         print('Order: ',ID)
@@ -478,8 +495,9 @@ class Toplevel1:
         orderstring = b'\x023O|1|' + ID.encode() + b'||' + b'\x5c'.join(Analysis_code) +b'|||||||||||Sp.1'
         print("Order: order string, ",orderstring)
         return orderstring
+        
     '''creates checksum'''
-    def check_sum_creator(self,frame):
+    def checksumCreator(self,frame):
         print("checksum creator: ",frame)
         c = hex((sum(frame) + 14) % 256)
         if len(c) == 3:
@@ -525,7 +543,7 @@ class Toplevel1:
         print(int(hex_str[s:], 16))
         hex_int = int(hex_str[s:], 16)
         return hex(hex_int)
-    def check_sum(self, frame):
+    def checksum(self, frame):
         print(frame[1])
         return hex((sum(frame[0]) + 14) % 256) == self.str_to_hex(frame[1])
     # the main loap that check if something is to be read from the serial port and if it is it starts
@@ -536,49 +554,52 @@ class Toplevel1:
         # \x15 -> NACK or written to serial that data is not acknowledged which indicate failure in the checksum
         # \x0A -> LF or indicate the end of frame
         # \x04 -> EOT or indicate close the link (the end of the communication)
-        try:
-            while self.port.in_waiting > 0:
-                data = self.port.read(1)
-                if data == b'\x05' or data == b'\x0A' or data == b'\x04':
-                    if data == b'\x05':
-                        self.port.write(b'\x06')
-                    elif data == b'\x0A':
-                        self.frames[-1] += data
-                        try:
-                            if self.check_sum(self.frames[-1].split(b'\r')):
-                                self.port.write(b'\x06')
-                            else:
+        if not self.handling:
+            self.handling = True
+            try:
+                while self.port.in_waiting > 0:
+                    data = self.port.read(1)
+                    if data == b'\x05' or data == b'\x0A' or data == b'\x04':
+                        if data == b'\x05':
+                            self.port.write(b'\x06')
+                        elif data == b'\x0A':
+                            self.frames[-1] += data
+                            try:
+                                if self.checksum(self.frames[-1].split(b'\r')):
+                                    self.port.write(b'\x06')
+                                else:
+                                    self.show('\nchecksum False for ' + str(len(self.frames)))
+                                    self.frames.pop()
+                                    self.port.write(b'\x15')
+                            except:
                                 self.show('\nchecksum False for ' + str(len(self.frames)))
                                 self.frames.pop()
                                 self.port.write(b'\x15')
-                        except:
-                            self.show('\nchecksum False for ' + str(len(self.frames)))
-                            self.frames.pop()
-                            self.port.write(b'\x15')
-                        self.frames.append(''.encode('ascii'))
-                    elif data == b'\x04':
-                        if not self.frames[-1]:
-                            self.frames.pop()
-                        self.framer()
-                        if 'R' in self.record_type:
-                            while self.writing == True:
-                                time.sleep(1)
-                            self.writing = True
-                            try:
-                                self.writer(self.result(self.frames[self.record_type['O']],self.frames[self.record_type['R']]))
-                            except:
-                                pass
-                            self.writing = False
-                        elif 'Q' in self.record_type:
-                            for frame in self.frames:
-                                print(frame)
-                            self.reader()
-                        self.frames = [''.encode('ascii')]
-                elif data:
-                    self.frames[-1] += data
-        except serial.serialutil.SerialException:
-            self.show('Looper: ERROR serial has been disconnected ')
-            self.disconnect()
+                            self.frames.append(''.encode('ascii'))
+                        elif data == b'\x04':
+                            if not self.frames[-1]:
+                                self.frames.pop()
+                            self.framer()
+                            if 'R' in self.record_type:
+                                while self.writing == True:
+                                    time.sleep(1)
+                                self.writing = True
+                                try:
+                                    self.writer(self.result(self.frames[self.record_type['O']],self.frames[self.record_type['R']]))
+                                except:
+                                    pass
+                                self.writing = False
+                            elif 'Q' in self.record_type:
+                                for frame in self.frames:
+                                    print(frame)
+                                self.Q_handler()
+                            self.frames = [''.encode('ascii')]
+                    elif data:
+                        self.frames[-1] += data
+            except serial.serialutil.SerialException:
+                self.show('Looper: ERROR serial has been disconnected ')
+                self.disconnect()
+            self.handling = False
 
     # turns off the connect button and start the run function
     # this function only works if the connection button is active
@@ -638,7 +659,7 @@ class Toplevel1:
         [('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
-        self.root.title(self.device_name)
+        self.root.title(self.instrumentName)
         self.root.configure(background="#d9d9d9")
         self.root.configure(highlightbackground="#d9d9d9")
         self.root.configure(highlightcolor="black")
@@ -715,10 +736,10 @@ class Toplevel1:
         self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
-            os.mkdir(self.device_name)
+            os.mkdir(self.instrumentName)
         except FileExistsError:
             pass
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
 
         self.port_entry.insert(0, 'USB-SERIAL CH340')
 

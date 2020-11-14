@@ -43,7 +43,7 @@ class RepeatedTimer(object):
 
 class Toplevel1:
     # the device name
-    device_name = 'Roche-Cobas-Integra-400-Plus'
+    instrumentName = 'Roche-Cobas-Integra-400-Plus'
 
     results = {}
     last_result = {}
@@ -131,7 +131,7 @@ class Toplevel1:
                                 splitchar = b'\x03'
                             else:
                                 splitchar = b'\x17'
-                            if self.check_sum(frames[-1].split(splitchar), splitchar):
+                            if self.checkSum(frames[-1].split(splitchar), splitchar):
                                 self.port.write(b'\x06')
                             else:
                                 self.show('\nchecksum False for ' + str(len(frames)))
@@ -159,7 +159,7 @@ class Toplevel1:
                                 self.result(frames)
                             elif 'Q' in self.record_type:
                                 print('communicate: query')
-                                self.reader(frames)
+                                self.Q_handler(frames)
                         except:
                             print('Communicate: error while trying to analyse message')
                             pass
@@ -173,9 +173,9 @@ class Toplevel1:
     l2g = {}
     g2l = {}
 
-    def check_sum(self, frame, splitchar):
-        print('check_sum: frame given', frame, ', splitchar', splitchar)
-        if self.check_sum_creator(frame[0][1:] + splitchar) == frame[1][0:2]:
+    def checkSum(self, frame, splitchar):
+        print('checkSum: frame given', frame, ', splitchar', splitchar)
+        if self.checkSumCreator(frame[0][1:] + splitchar) == frame[1][0:2]:
             return True
         else:
             return False
@@ -206,8 +206,8 @@ class Toplevel1:
             pass
         self.writing = False
 
-    def reader(self, frames):
-        print('reader: starting')
+    def Q_handler(self, frames):
+        print('Q_handler: starting')
 
         Datatime = frames[self.record_type['H']].split(b'|')[13]
         hostIdentifier = b'ASTM-Host^V·6.61'
@@ -216,83 +216,83 @@ class Toplevel1:
         headerrType = b'TSDWN^REPLY'
         header = b'|'.join([b'\x021H',delimeters,b'',b'',hostIdentifier,b'',b'',b'',b'',receiver,headerrType,b'P',b'1'
                                ,Datatime]) + b'\r\x03'
-        fullheader = header + self.check_sum_creator(header[1:]) + b'\r\n'
+        fullheader = header + self.checkSumCreator(header[1:]) + b'\r\n'
 
         patient =  b'\x022P|1\r\x03'
-        fullpatient = patient + self.check_sum_creator(patient[1:]) + b'\r\n'
+        fullpatient = patient + self.checkSumCreator(patient[1:]) + b'\r\n'
 
-        print('reader: fullheader,',fullheader)
+        print('Q_handler: fullheader,',fullheader)
         id = frames[self.record_type['Q']].split(b'|')[2].split(b'^')[1].strip()
         position = b'^'.join(frames[self.record_type['Q']].split(b'|')[2].split(b'^')[2:])
-        print('reader: id,', id)
+        print('Q_handler: id,', id)
         if id:
             all_tests = self.getSampleParameters(id.decode())
-            print('reader: all_tests,', all_tests)
+            print('Q_handler: all_tests,', all_tests)
             required_tests = []
             if all_tests and all_tests != 'nc':
                 for test in all_tests:
                     if test in self.g2l:
                         required_tests.append(b'^^^' + test.encode() + b'^')
             required_tests = b'\\'.join(required_tests)
-            print('reader: required tests,', required_tests)
+            print('Q_handler: required tests,', required_tests)
         else:
             required_tests = False
         if required_tests:
             resp_frames = [
                 b'\x05',
-                b'\x021H|\^&||||||||||P||\x03' + self.check_sum_creator(b'1H|\^&||||||||||P||\x03') + b'\r\n',
-                b'\x022P|1\x03' + self.check_sum_creator(b'2P|1\x03') + b'\r\n',
+                b'\x021H|\^&||||||||||P||\x03' + self.checkSumCreator(b'1H|\^&||||||||||P||\x03') + b'\r\n',
+                b'\x022P|1\x03' + self.checkSumCreator(b'2P|1\x03') + b'\r\n',
                 b'\x023O|1|' + id + b'|' + position + b'|' + required_tests + b'|R||||||N||||||||||||||Q\x03' + \
-                    self.check_sum_creator(b'3O|1|' + id + b'|' + position + b'|' + required_tests + \
+                    self.checkSumCreator(b'3O|1|' + id + b'|' + position + b'|' + required_tests + \
                     b'|R||||||N||||||||||||||Q\x03') + b'\r\n',
-                b'\x024L|1|\x03' + self.check_sum_creator(b'4L|1|\x03') + b'\r\n',
+                b'\x024L|1|\x03' + self.checkSumCreator(b'4L|1|\x03') + b'\r\n',
                 b'\x04'
             ]
         else:
             resp_frames = [
                 b'\x05',
-                b'\x021H|\^&||||||||||P||\x03' + self.check_sum_creator(b'1H|\^&||||||||||P||\x03') + b'\r\n',
-                b'\x022P|1\x03' + self.check_sum_creator(b'2P|1\x03') + b'\r\n',
-                b'\x023O|1|' + id + b'|' + position + b'||R||||||N||||||||||||||Z\x03' + self.check_sum_creator(
+                b'\x021H|\^&||||||||||P||\x03' + self.checkSumCreator(b'1H|\^&||||||||||P||\x03') + b'\r\n',
+                b'\x022P|1\x03' + self.checkSumCreator(b'2P|1\x03') + b'\r\n',
+                b'\x023O|1|' + id + b'|' + position + b'||R||||||N||||||||||||||Z\x03' + self.checkSumCreator(
                     b'3O|1|' + id + b'|' + position + b'||R||||||N||||||||||||||Z\x03') + b'\r\n',
-                b'\x024L|1|\x03' + self.check_sum_creator(b'4L|1|\x03') + b'\r\n',
+                b'\x024L|1|\x03' + self.checkSumCreator(b'4L|1|\x03') + b'\r\n',
                 b'\x04'
             ]
         i = 0
         c = 0
-        print("reader: replies", resp_frames)
+        print("Q_handler: replies", resp_frames)
         while True:
             self.port.write(resp_frames[i])
-            print('reader: wrote reply', resp_frames[i])
+            print('Q_handler: wrote reply', resp_frames[i])
             if resp_frames[i] == b'\x04':
-                print('reader: finished sending')
+                print('Q_handler: finished sending')
                 break
             while True:
-                print('reader: waiting')
+                print('Q_handler: waiting')
                 self.port.timeout = 8
                 d = self.port.read(1)
                 self.port.timeout = 1000000
-                print('reader: d', d)
+                print('Q_handler: d', d)
                 if d == b'\x15':
                     c += 1
                     if c > 7:
-                        print('reader: out of nacks')
+                        print('Q_handler: out of nacks')
                         self.port.write('\x04')
                         return
-                    print('reader: !!!nack!!!')
+                    print('Q_handler: !!!nack!!!')
                     break
                 elif d == b'\x06':
                     c = 0
-                    print('reader: ACK response')
+                    print('Q_handler: ACK response')
                     i += 1
                     break
                 elif d == b'':
                     self.port.write('\x04')
-                    print('Q_reply: Error there is no ACK from ' + self.device_name)
-                    self.show('Q_reply: Error there is no ACK from ' + self.device_name)
+                    print('Q_reply: Error there is no ACK from ' + self.instrumentName)
+                    self.show('Q_reply: Error there is no ACK from ' + self.instrumentName)
                     return
 
-    def check_sum_creator(self, frame):
+    def checkSumCreator(self, frame):
         print('checksum_creator: frame,', frame)
         s = hex(sum(frame))
         if len(s[2:]) >= 2:
@@ -386,7 +386,7 @@ class Toplevel1:
     # uploads tests for the same api through different url
     def upload(self, sample):
         print('uploader')
-        record = {'id': sample[1], 'instrument_code': self.device_name}
+        record = {'id': sample[1], 'instrument_code': self.instrumentName}
         print('uploader: recorde', record)
         parameters = []
         for test in sample[2]:
@@ -416,7 +416,7 @@ class Toplevel1:
     # craete a connection
     def dbc(self, d=''):
         print('dbc: query', d)
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
         print('dbc: current working directory,', os.getcwd())
         if d:
             with sqlite3.connect('median.db') as cnxn:
@@ -522,7 +522,7 @@ class Toplevel1:
         [('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
-        self.root.title(self.device_name)
+        self.root.title(self.instrumentName)
         self.root.configure(background="#d9d9d9")
         self.root.configure(highlightbackground="#d9d9d9")
         self.root.configure(highlightcolor="black")
@@ -601,10 +601,10 @@ class Toplevel1:
         self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
-            os.mkdir(self.device_name)
+            os.mkdir(self.instrumentName)
         except FileExistsError:
             pass
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
 
         self.port_entry.insert(0, 'USB-SERIAL CH340')
 

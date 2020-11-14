@@ -26,7 +26,7 @@ class Toplevel1:
         [('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
-        self.root.title(self.device_name)
+        self.root.title(self.instrumentName)
         self.root.configure(background="#d9d9d9")
         self.root.configure(highlightbackground="#d9d9d9")
         self.root.configure(highlightcolor="black")
@@ -100,10 +100,10 @@ class Toplevel1:
         self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
-            os.mkdir(self.device_name)
+            os.mkdir(self.instrumentName)
         except FileExistsError:
             pass
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
 
         self.port_entry.insert(0, 'USB-SERIAL CH340')
 

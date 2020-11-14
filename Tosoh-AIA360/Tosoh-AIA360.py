@@ -43,7 +43,7 @@ class RepeatedTimer(object):
 
 class Toplevel1:
     # the device name
-    device_name = 'Tosoh-AIA360'
+    instrumentName = 'Tosoh-AIA360'
 
     frames = [''.encode('ascii')]
     repeatingInterval = 0.2
@@ -109,13 +109,13 @@ class Toplevel1:
     # finally disabled the disconnect button
     def disconnect(self):
         try:
+            self.timerThread.stop()
+            self.show('disconnected')
+            self.connect_button.configure(state='enable')
+            self.disconnect_button.configure(state='disable')
+            self.handling = True
             if self.port.is_open:
-                self.timerThread.stop()
                 self.port.close()
-                self.show('disconnected')
-                self.connect_button.configure(state='enable')
-                self.disconnect_button.configure(state='disable')
-                self.handling = True
         except:
             self.show('ERROR: there is no port to be closed')
 
@@ -147,7 +147,7 @@ class Toplevel1:
     # uploads tests for the same api through different url
     def upload(self, sample):
         print('uploader')
-        record = {'id': sample[1], 'instrument_code': self.device_name}
+        record = {'id': sample[1], 'instrument_code': self.instrumentName}
         print(record)
         parameters = []
         for test in sample[2]:
@@ -177,7 +177,7 @@ class Toplevel1:
     # craete a connection
     def dbc(self, d=''):
         # print('dbc: query,',d)
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
         # print('dbc: ', os.getcwd())
         if d:
             with sqlite3.connect('median.db') as cnxn:
@@ -375,7 +375,7 @@ class Toplevel1:
         hex_int = int(hex_str[s:], 16)
         return hex(hex_int)
 
-    def check_sum(self, frame):
+    def checkSum(self, frame):
         print(frame[1])
         return hex((sum(frame[0]) + 14) % 256) == self.str_to_hex(frame[1])
 
@@ -400,7 +400,7 @@ class Toplevel1:
                             self.frames[-1] += data
                             self.show('Frame ' + str(len(self.frames)) +
                                     ' :' + str(self.frames))
-                            if self.check_sum(self.frames[-1].split(b'\r')):
+                            if self.checkSum(self.frames[-1].split(b'\r')):
                                 self.port.write(b'\x06')
                             else:
                                 self.show('\nchecksum False for ' +
@@ -487,7 +487,7 @@ class Toplevel1:
                        ('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
-        self.root.title(self.device_name)
+        self.root.title(self.instrumentName)
         self.root.configure(background="#d9d9d9")
         self.root.configure(highlightbackground="#d9d9d9")
         self.root.configure(highlightcolor="black")
@@ -564,10 +564,10 @@ class Toplevel1:
         self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
-            os.mkdir(self.device_name)
+            os.mkdir(self.instrumentName)
         except FileExistsError:
             pass
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
 
         self.port_entry.insert(0, 'USB-SERIAL CH340')
 

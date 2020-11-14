@@ -43,7 +43,7 @@ class RepeatedTimer(object):
 
 class Toplevel1:
     # the device name
-    device_name = 'Tosoh-AIA900'
+    instrumentName = 'Tosoh-AIA900'
 
     frames = [''.encode('ascii')]
     repeatingInterval = 0.2
@@ -141,7 +141,7 @@ class Toplevel1:
     # uploads tests for the same api through different url
     def upload(self, sample):
         print('uploader')
-        record = {'id': sample[1], 'instrument_code': self.device_name}
+        record = {'id': sample[1], 'instrument_code': self.instrumentName}
         print(record)
         parameters = []
         for test in sample[2]:
@@ -171,7 +171,7 @@ class Toplevel1:
     # craete a connection
     def dbc(self, d=''):
         print(d)
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
         print('dbc', os.getcwd())
         if d:
             with sqlite3.connect('median.db') as cnxn:
@@ -414,20 +414,20 @@ class Toplevel1:
     }
 
     '''responsible for extracting ID from query and calling the properiate reply'''
-    def reader(self):
+    def Q_handler(self):
         print('q_reply')
         Q_Records = self.frames[self.record_type['Q']].split(b'|')
         Q_IDs = []
         for record in Q_Records[2].split(b'^'):
             if record:
                 Q_IDs.append(record.decode())
-        print('reader: Q_ids,',Q_IDs)
+        print('Q_handler: Q_ids,',Q_IDs)
         if 'ALL' in Q_IDs:
-            print('reader: all')
+            print('Q_handler: all')
             self.Q_reply('all')
         elif Q_IDs:
             for ID in Q_IDs:
-                print('reader: ID', ID)
+                print('Q_handler: ID', ID)
                 self.Q_reply(ID)
     '''responsible for uploading patient info and checking for device'''
     def Q_reply(self,ID):
@@ -435,8 +435,8 @@ class Toplevel1:
         if ID == 'all':
             print('Q_reply: all')
             replies = [b'\x05',
-                       b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||\r\x03' + self.check_sum_creator(b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||') + b'\r\n',
-                       b'\x022L|1\r\x03'+self.check_sum_creator(b'\x022L|1')+b'\r\n',
+                       b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||\r\x03' + self.checkSumCreator(b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||') + b'\r\n',
+                       b'\x022L|1\r\x03'+self.checkSumCreator(b'\x022L|1')+b'\r\n',
                        b'\x04']
         else:
             print('Q_reply:',ID)
@@ -444,16 +444,16 @@ class Toplevel1:
             print("Q_reply: Order,",Order)
             if not Order:
                 replies = [b'\x05',
-                           b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||\r\x03' + self.check_sum_creator(b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||') + b'\r\n',
-                           b'\x022Q|1|^' + ID.encode() + b'||ALL\r\x03' + self.check_sum_creator(b'\x022Q|1|^' + ID.encode() + b'||ALL') + b'\r\n',
-                           b'\x023L|1\r\x03'+self.check_sum_creator(b'\x023L|1')+b'\r\n',
+                           b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||\r\x03' + self.checkSumCreator(b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||') + b'\r\n',
+                           b'\x022Q|1|^' + ID.encode() + b'||ALL\r\x03' + self.checkSumCreator(b'\x022Q|1|^' + ID.encode() + b'||ALL') + b'\r\n',
+                           b'\x023L|1\r\x03'+self.checkSumCreator(b'\x023L|1')+b'\r\n',
                            b'\x04']
             else:
                 replies = [b'\x05',
-                           b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||\r\x03' + self.check_sum_creator(b'\x021H|\x5C^&|||'+self.device_name.encode()+b'|||||||||') + b'\r\n',
-                           b'\x022P|1|' + ID.encode() + b'||||||\r\x03' + self.check_sum_creator(b'\x022P|1|' + ID.encode() + b'||||||') + b'\r\n',
-                           Order + b'\r\x03' + self.check_sum_creator(Order) + b'\r\n',
-                           b'\x024L|1\r\x03'+self.check_sum_creator(b'\x024L|1')+b'\r\n',
+                           b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||\r\x03' + self.checkSumCreator(b'\x021H|\x5C^&|||'+self.instrumentName.encode()+b'|||||||||') + b'\r\n',
+                           b'\x022P|1|' + ID.encode() + b'||||||\r\x03' + self.checkSumCreator(b'\x022P|1|' + ID.encode() + b'||||||') + b'\r\n',
+                           Order + b'\r\x03' + self.checkSumCreator(Order) + b'\r\n',
+                           b'\x024L|1\r\x03'+self.checkSumCreator(b'\x024L|1')+b'\r\n',
                            b'\x04']
         i = 0
         print("Q_reply: replies", replies)
@@ -478,8 +478,8 @@ class Toplevel1:
                     i +=1
                     break
                 if time.time() - start > 4:
-                    print('Q_reply: Error there is no ACK from ' + self.device_name)
-                    self.show('Q_reply: Error there is no ACK from ' + self.device_name)
+                    print('Q_reply: Error there is no ACK from ' + self.instrumentName)
+                    self.show('Q_reply: Error there is no ACK from ' + self.instrumentName)
                     return
     '''responsible for graping test query from database'''
     def order(self,ID):
@@ -511,7 +511,7 @@ class Toplevel1:
         print("Order: order string, ",orderstring)
         return orderstring
     '''creates checksum'''
-    def check_sum_creator(self,frame):
+    def checkSumCreator(self,frame):
         print("checksum creator: ",frame)
         c = hex((sum(frame) + 14) % 256)
         if len(c) == 3:
@@ -557,7 +557,7 @@ class Toplevel1:
         print(int(hex_str[s:], 16))
         hex_int = int(hex_str[s:], 16)
         return hex(hex_int)
-    def check_sum(self, frame):
+    def checkSum(self, frame):
         print(frame[1])
         return hex((sum(frame[0]) + 14) % 256) == self.str_to_hex(frame[1])
 
@@ -584,7 +584,7 @@ class Toplevel1:
                         print('Looper: last frame',self.frames[-1])
                         try:
                             print('looper: Checking sum')
-                            if self.check_sum(self.frames[-1].split(b'\r')):
+                            if self.checkSum(self.frames[-1].split(b'\r')):
                                 print('Looper: check sum succeed')
                                 self.port.write(b'\x06')
                             else:
@@ -619,7 +619,7 @@ class Toplevel1:
                         elif 'Q' in self.record_type:
                             for frame in self.frames:
                                 print(frame)
-                            self.reader()
+                            self.Q_handler()
                         self.frames = [''.encode('ascii')]
                 elif data:
                     self.frames[-1] += data
@@ -685,7 +685,7 @@ class Toplevel1:
         [('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
-        self.root.title(self.device_name)
+        self.root.title(self.instrumentName)
         self.root.configure(background="#d9d9d9")
         self.root.configure(highlightbackground="#d9d9d9")
         self.root.configure(highlightcolor="black")
@@ -762,10 +762,10 @@ class Toplevel1:
         self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
-            os.mkdir(self.device_name)
+            os.mkdir(self.instrumentName)
         except FileExistsError:
             pass
-        os.chdir(self.path + self.device_name)
+        os.chdir(self.path + self.instrumentName)
 
         self.port_entry.insert(0, 'USB-SERIAL CH340')
 
