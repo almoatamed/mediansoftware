@@ -43,7 +43,7 @@ class RepeatedTimer(object):
 
 class Toplevel1:
     # the device name
-    instrumentName = 'Roche-Cobas-Integra-400-Plus'
+    instrumentName = 'Roche-Cobas-411'
 
     results = {}
     last_result = {}
@@ -186,7 +186,7 @@ class Toplevel1:
     def result(self,frames):
         print('result: frames',frames)
         r = {'result':{}}
-        r['id'] = frames[self.record_type['O']].split(b'|')[2]
+        r['id'] = frames[self.record_type['O']].split(b'|')[2].decode()
         for i in self.record_type['R']:
             localCode = frames[i].split(b'|')[2].split(b'^')[3].decode()
             if localCode in self.l2g:

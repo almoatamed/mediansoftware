@@ -97,7 +97,6 @@ class Toplevel1:
         if self.port:
             self.show('connecting...')
             self.disconnect_button.configure(state='enable')
-            self.frames = [''.encode('ascii')]
             self.running = True
             self.Thread = threading.Thread(target=self.looper)
             self.Thread.start()
@@ -282,10 +281,10 @@ class Toplevel1:
         # \x04 -> EOT or indicate close the link (the end of the communication)
         try:
             try:
-                if not self.string1:
+                if not self.frameString:
                     pass
             except:
-                self.string1 = b''
+                self.frameString = b''
             while True:
                 d = self.port.read(1)
                 print('looper: byte d,',d)
@@ -296,17 +295,17 @@ class Toplevel1:
                     self.port.write(b'\x06')
                     time.sleep(0.1)
                     continue
-                self.string1 += d
-                if len(self.string1)>10:
-                    if self.string1[-3:] == b'\x08\x04\n':
+                self.frameString += d
+                if len(self.frameString)>10:
+                    if self.frameString[-3:] == b'\x08\x04\n':
                         startTime= time.time()
                         print('looper: end of frame')
                         try:
-                            messages = self.string1.split(b'\x08\x04')
+                            messages = self.frameString.split(b'\x08\x04')
                             print('looper: message recieved')
                             for message in messages:
                                 print('looper: message',message)
-                            self.string1 = b''
+                            self.frameString = b''
                             if not ( b'CTR' in messages[0]):
                                 print('looper: not a result message')
                                 continue
@@ -336,7 +335,7 @@ class Toplevel1:
                         except:
                             print('looper: error occured in result processing')
                             pass
-                        self.string1 = b''
+                        self.frameString = b''
                         finish = time.time() - startTime
                         print('Communicate: processing time is ',finish)
                         self.port.write(b'\x06')

@@ -555,18 +555,18 @@ class Toplevel1():
     def looper(self):
         try:
             try:
-                if not self.string1:
-                    self.string1 = ''
+                if not self.frameString:
+                    self.frameString = ''
             except:
                 pass
             while self.port.in_waiting > 0:
                 d = self.port.read(1)
                 if d.decode('ascii') and d != b'\x03':
-                    self.string1 += d.decode('ascii')
+                    self.frameString += d.decode('ascii')
                 if d == b'\x03':
                     self.port.write(b'\x06')
-                    self.last_result = self.cbc_text(self.string1)
-                    self.string1 = ''
+                    self.last_result = self.cbc_text(self.frameString)
+                    self.frameString = ''
                     self.writer(self.last_result)
         except:
             self.show('\nERROR while looping')
