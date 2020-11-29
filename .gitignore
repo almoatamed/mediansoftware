@@ -8,5 +8,9 @@
 /AIA2000
 /BC2800
 /.vscode
+/*/dist
+/*/build
+/*/*.spec
+
 
 
