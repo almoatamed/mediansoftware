@@ -67,13 +67,13 @@ class looper(threading.Thread):
                 self.main_win.disconnect()
                 return
             except:
-                self.main_win.show('server: Error occured please try again!')
+                self.main_win.show('server-run: Error occured please try again!')
                 self.main_win.disconnect()
                 return
             self.handler(s)
 
     def handler(self,s):
-        print('handler')
+        print('handler: starting')
         data= b''
         while True:
             if not self.running:

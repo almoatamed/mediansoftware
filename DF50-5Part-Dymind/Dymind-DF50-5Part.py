@@ -46,7 +46,7 @@ class looper(threading.Thread):
         self.main_win = main_win
         self.daemon = True
 
-    def makeHeader(self, type,control_id):
+    def MSH(self, type,control_id):
         return b'MSH|' + b'^~\&' + 7 * b'|' + type + b'|'+control_id+b'|P|2.3.1||||||ASCII|||\r'
     def MSA(self,control_id):
         return b'MSA|AA|'+control_id+b'\r'
@@ -71,33 +71,31 @@ class looper(threading.Thread):
             try:
                 self.cliant, self.cliantAddress = self.main_win.connection.accept()
             except:
-                self.main_win.show('forced to close before connection')
+                self.main_win.show('server: forced to close before connection')
                 return
-            self.main_win.show('\nserver: client detected' + str(self.cliantAddress))
+            self.main_win.show('server: client detected' + str(self.cliantAddress))
             self.handler()
 
 
     def handler(self):
         try:
-            print('handler')
+            print('handler: starting')
             data= b''
             while True:
                 time.sleep(2)
                 bytes = self.cliant.recv(999999)
-                print(bytes)
-                if bytes == '\n':
+                if bytes == b'\n':
                     self.cliant.close()
                     del self.cliant
                     return
                 if len(bytes)<50:
-                    print(bytes)
+                    print('handler: the entire bytes',bytes)
                 else:
-                    print(bytes[0:40])
+                    print('handler: last 40 characters of the bytes,',bytes[0:40])
                 if bytes:
                     data+=bytes
                     if len(data)>4:
                         if data[-3:] == b'\r\x1c\r':
-                            print('true signal')
                             records = []
                             try:
                                 for message in data.split(b'\x0b'):
@@ -107,14 +105,14 @@ class looper(threading.Thread):
                                     for line in message.split(b'\r'):
                                         records[-1].append([])
                                         for segment in line.split(b'|'):
-                                            print(segment)
+                                            print('handler: message segment, ',segment)
                                             records[-1][-1].append(segment)
-                                print(' is true and loop finished successfully')
+                                print('handler: True and loop finished successfully')
                                 for message in records:
                                     if message[0][8] == b'ORU^R01':
                                         control_id = message[0][9]
                                         self.accept(ack=b'^R21', control_id=control_id)
-                                        print('oru message')
+                                        print('handler: oru message')
                                         r = {}
                                         r['result'] = {}
                                         for line in message:
@@ -125,8 +123,10 @@ class looper(threading.Thread):
                                         if r['result'] and 'id' in r:
                                             self.main_win.writer(r)
                             except:
+                                print('handler: error while processing message')
                                 pass
                             data = b''
+                            bytes = b''
                     print('test signal')
                     continue
         except ConnectionResetError:
@@ -139,7 +139,7 @@ class looper(threading.Thread):
 
 
     def accept(self,control_id,ack = b''):
-        self.cliant.send(b'\x0b'+self.makeHeader(b'ACK^R01',control_id) + self.MSA(control_id) + b'\x1c\r')
+        self.cliant.send(b'\x0b'+self.MSH(b'ACK^R01',control_id) + self.MSA(control_id) + b'\x1c\r')
 
 class Toplevel1():
     instrumentName = 'Dymind-DF50-5Part'
@@ -177,10 +177,10 @@ class Toplevel1():
 
     # establish a socket connection to the indicated ip and port number for the instrument
     def get_connection(self):
-        self.set()
         self.show('getting connection')
         s = socket.socket()
         try:
+            self.set()
             s.bind((self.ip, self.portnumber))
             self.show('connection has been created')
             s.listen(1)
@@ -211,16 +211,19 @@ class Toplevel1():
     # closes the looper instance and the connection sucket
     # enable the connect button and disable disconnect button
     def disconnect(self):
-        if self.connection:
-            try:
-                self.looper.cliant.close()
-                del self.looper
-            except AttributeError:
-                pass
-            self.connection.close()
-            self.show('disconnected\n')
-            self.connect_button.configure(state='enable')
-            self.disconnect_button.configure(state='disable')
+        try:
+            if self.connection:
+                try:
+                    self.looper.cliant.close()
+                    del self.looper
+                except AttributeError:
+                    pass
+                self.connection.close()
+                self.show('disconnected\n')
+                self.connect_button.configure(state='enable')
+                self.disconnect_button.configure(state='disable')
+        except:
+            pass
 
     # contact the LIMS api through a given url and gets the sample data
     # using barcode
