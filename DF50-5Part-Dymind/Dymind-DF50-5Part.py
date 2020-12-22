@@ -129,7 +129,7 @@ class looper(threading.Thread):
                             bytes = b''
                     print('test signal')
                     continue
-        except ConnectionResetError:
+        except ConnectionResetError: 
             self.main_win.show('\nhandler: ERROR, disconnected')
         except ConnectionAbortedError:
             self.main_win.show('\nhandler: ERROR, disconnected')
@@ -200,9 +200,9 @@ class Toplevel1():
         self.connection = self.get_connection()
         if self.connection:
             self.disconnect_button.configure(state='enable')
-            print('starting')
+            
             self.looper = looper(self)
-            print('looper is abbout to run')
+            
             self.looper.start()
         else:
             self.show('there is no connection\n')
@@ -536,7 +536,7 @@ class Toplevel1():
                     )
                 ''')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:
@@ -552,7 +552,7 @@ class Toplevel1():
                 ''')
             self.dbc('insert into counter(id,count) values(1,1);')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:
@@ -572,7 +572,7 @@ class Toplevel1():
                     );
                 ''')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:

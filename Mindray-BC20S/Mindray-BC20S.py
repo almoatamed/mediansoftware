@@ -11,14 +11,14 @@ import socket
 import sqlite3
 py3 = True
 
-# repetitivve calass
+
 class RepeatedTimer(object):
     def __init__(self, interval, function, *args, **kwargs):
-        self._timer     = None
-        self.interval   = interval
-        self.function   = function
-        self.args       = args
-        self.kwargs     = kwargs
+        self._timer = None
+        self.interval = interval
+        self.function = function
+        self.args = args
+        self.kwargs = kwargs
         self.is_running = False
         self.start()
 
@@ -58,40 +58,41 @@ class looper(threading.Thread):
                 '\n\nserver : connecting' + '\nserver: ' + str((self.main_win.ip, 5100)))
             try:
                 s = socket.socket()
-                s.connect((self.main_win.ip,5100))
+                s.connect((self.main_win.ip, 5100))
+                self.handler(s)
             except TimeoutError:
                 self.main_win.show(
-                    'server-run: Timeout while trying to connect to Instrument ' + self.main_win.instrumentName + ''
+                    'server-run: Timeout while trying to connect to Instrument ' +
+                        self.main_win.instrumentName + ''
                     ' ,check ip'
                 )
                 self.main_win.disconnect()
                 return
             except:
-                self.main_win.show('server-run: Error occured please try again!')
+                self.main_win.show('server: Error occured please try again!')
                 self.main_win.disconnect()
                 return
-            self.handler(s)
 
-    def handler(self,s):
-        print('handler: starting')
-        data= b''
+    def handler(self, s):
+        print('handler')
+        data = b''
         while True:
             if not self.running:
                 return
             time.sleep(2)
-            bytes = s.recv(999999)
-            bytes = bytes.replace(b'\x02',b'')
-            if bytes == '\n':
+            bytesReceived = s.recv(999999)
+            bytesReceived = bytesReceived.replace(b'\x02', b'')
+            if bytesReceived == '\n':
                 s.close()
                 del s
                 return
-            if len(bytes)<50:
-                print(bytes)
+            if len(bytesReceived) < 50:
+                print(bytesReceived)
             else:
-                print(bytes[0:40])
-            if bytes:
-                data+=bytes
-                if len(data)>4:
+                print(bytesReceived[0:40])
+            if bytesReceived:
+                data += bytesReceived
+                if len(data) > 4:
                     if data[-3:] == b'\r\x1c\r':
                         print('true signal')
                         records = []
@@ -115,7 +116,8 @@ class looper(threading.Thread):
                                         if line[0] == b'OBR':
                                             r['id'] = line[3].decode()
                                         elif line[0] == b'OBX':
-                                            r['result'][line[3].split(b'^')[1].decode()] = line[5].decode()
+                                            r['result'][line[3].split(
+                                                b'^')[1].decode()] = line[5].decode()
                                     if r['result'] and 'id' in r:
                                         self.main_win.writer(r)
                         except:
@@ -126,7 +128,7 @@ class looper(threading.Thread):
 
 
 class Toplevel1():
-    instrumentName = 'Mindray-BC20S'
+    instrumentName = 'Mindray-BC30S'
     localcode2globalcode = {}
 
     # creats a variable that holdt the inverse of the localcode2globalcode
@@ -160,7 +162,6 @@ class Toplevel1():
     # gets the connection ip and port for the local network instrument
     def set(self):
         self.ip = self.ip_entry.get()
-        self.portnumber = int(self.port_entry.get())
 
     # disables connect button
     # shows connecting message
@@ -170,10 +171,10 @@ class Toplevel1():
         self.connect_button.configure(state='disabled')
         self.show('connecting')
         self.disconnect_button.configure(state='enable')
-        print('starting')
+
         self.set()
         self.looper = looper(self)
-        print('looper is abbout to run')
+
         self.looper.start()
 
     # closes the looper instance and the connection sucket
@@ -194,8 +195,7 @@ class Toplevel1():
         sampleBarCode = str(sampleBarCode)
         print(self.sampleid + b'=' + sampleBarCode.encode())
         try:
-            resp = requests.get(self.apigetter, params=self.sampleid + b'=' + \
-                 sampleBarCode.encode(),timeout=2)
+            resp = requests.get(self.apigetter, params=self.sampleid + b'=' + sampleBarCode.encode(), timeout=2)
             if resp.status_code == 200:
                 respjson = resp.json()
                 print(respjson)
@@ -241,11 +241,10 @@ class Toplevel1():
                 print(resp.content.decode())
                 return 'connection error'
         except:
-                return 'upload: connection error'
-
+               return 'upload: connection error'
 
     # craete a connection
-    def dbc(self,d=''):
+    def dbc(self, d=''):
         # print(d)
         os.chdir(self.path + self.instrumentName)
         # print('dbc',os.getcwd())
@@ -256,30 +255,30 @@ class Toplevel1():
                 x = list(c.execute(d))
                 c.close()
             return x
-    # set counter
+
+    # update counter where counter is used as the test id
     def cset(self):
         self.dbc('update counter set count = '+str(self.cget()+1)+' where id = 1 ')
         return True
-    
+
     # gets counter
     def cget(self):
         x = self.dbc('select count from counter where id = 1 ')[0][0]
         return x
-    
+
     # inserts test that currespond to a given barcode to the database
     def testset(self, result):
         self.dbc('insert into test(test_id,barcodeid,results) values('
-                  ''+str(self.cget())+',"' + result['id'] + '","' + str(result['result']) + '");')
+                 ''+str(self.cget())+',"' + result['id'] + '","' + str(result['result']) + '");')
         self.cset()
         return True
-        
+
     # gets the test result for a sample
-    def testget(self,barcode):
+    def testget(self, barcode):
         return self.dbc('select * from test where barcodeid="'+str(barcode)+'"')
 
-
     # upload the state of given test to uploaded
-    def testsetuploaded(self,test):
+    def testsetuploaded(self, test):
         # print('setting uploaded')
         if self.dbc('update test set uploadstate = "y" where test_id = ' + str(test)):
             return True
@@ -287,7 +286,7 @@ class Toplevel1():
             return False
 
     # upload the state of given test to uploaded
-    def testseterror(self,test):
+    def testseterror(self, test):
         # print('setting uploaded')
         if self.dbc('update test set uploadstate = "e" where test_id = ' + str(test)):
             return True
@@ -296,7 +295,7 @@ class Toplevel1():
 
     # upload the last test result and
     # try to upload unuploaded tests
-    def writer(self,result):
+    def writer(self, result):
         self.last_result = result
         # print(self.last_result)
         self.testset(self.last_result)
@@ -308,9 +307,9 @@ class Toplevel1():
     def attemptUpload(self):
         samples = self.dbc('select * from test where uploadstate = "n" order by created_at desc')
         # for i in samples:
-            # print(i)
-            # print('\n')
-        if len(samples)==0:
+           # print(i)
+           # print('\n')
+        if len(samples) ==0:
             return
         for sample in samples:
             parms = self.getSampleParameters(sample[1])
@@ -339,33 +338,33 @@ class Toplevel1():
 
     # turns off the connect button and start the run function
     # this function only works if the connection button is active
-    def connect(self,p1):
+    def connect(self, p1):
         # print('starting one')
-        if self.connect_button.state()[0] == 'active' :
+        if self.connect_button.state()[0] == 'active':
             self.show('starting')
             self.run()
 
     # exit1 is basically a disconnect button
     # it check if the disconnect button is active or not
     # and if it is it runs the disconnect button
-    def exit1(self,p1):
-        if self.disconnect_button.state()[0] == 'active' :
+    def exit1(self, p1):
+        if self.disconnect_button.state()[0] == 'active':
             self.disconnect()
 
     # exit2 is basically a program close button it check is the exit button is working and then
     # it calls the disconnect and the root.destroy functions
     # and finally close the program with sys.close
-    def exit2(self,p1):
-        if self.exit_btn.state()[0] == 'active' :
+    def exit2(self, p1):
+        if self.exit_btn.state()[0] == 'active':
             self.disconnect()
             self.root.destroy()
             sys.exit()
 
     # show used to # print strings on the connection state scrolled text box
-    def show(self,string):
-        self.connection_state_text.configure(state = 'normal')
-        self.connection_state_text.insert(tk.END,'\n'+string)
-        self.connection_state_text.configure(state = 'disabled')
+    def show(self, string):
+        self.connection_state_text.configure(state= 'normal')
+        self.connection_state_text.insert(tk.END, '\n'+string)
+        self.connection_state_text.configure(state= 'disabled')
 
     # the initialization function
     def __init__(self):
@@ -383,8 +382,7 @@ class Toplevel1():
         self.style.configure('.', background=_bgcolor)
         self.style.configure('.', foreground=_fgcolor)
         self.style.configure('.', font="TkDefaultFont")
-        self.style.map('.', background=
-        [('selected', _compcolor), ('active', _ana2color)])
+        self.style.map('.', background=                       [('selected', _compcolor), ('active', _ana2color)])
 
         self.root.geometry("595x600+422+80")
         self.root.title(self.instrumentName)
@@ -393,60 +391,48 @@ class Toplevel1():
         self.root.configure(highlightcolor="black")
 
         self.connection_parameter_frame = ttk.Labelframe(self.root)
-        self.connection_parameter_frame.place(relx=0.017, rely=0.02
-                                              , relheight=0.274, relwidth=0.941)
+        self.connection_parameter_frame.place(relx=0.017, rely=0.02                                              , relheight=0.274, relwidth=0.941)
         self.connection_parameter_frame.configure(relief='')
         self.connection_parameter_frame.configure(text='''connection_parameter''')
         self.connection_parameter_frame.configure(width=560)
 
         self.port_description_frame = ttk.Labelframe(self.connection_parameter_frame)
-        self.port_description_frame.place(relx=0.018, rely=0.519, relheight=0.333
-                                          , relwidth=0.714, bordermode='ignore')
+        self.port_description_frame.place(relx=0.018, rely=0.519, relheight=0.333                                          , relwidth=0.714, bordermode='ignore')
         self.port_description_frame.configure(relief='')
         self.port_description_frame.configure(text='''network_parameters''')
         self.port_description_frame.configure(width=400)
 
-        self.port_entry = ttk.Entry(self.port_description_frame)
-        self.port_entry.place(relx=0.025, rely=0.444, relheight=0.467, relwidth=0.33, bordermode='ignore')
-        self.port_entry.configure(takefocus="")
-        self.port_entry.configure(cursor="ibeam")
-
         self.ip_entry = ttk.Entry(self.port_description_frame)
-        self.ip_entry.place(relx=0.37, rely=0.444, relheight=0.467, relwidth=0.596, bordermode='ignore')
+        self.ip_entry.place(relx=0.025, rely=0.444, relheight=0.467, relwidth=0.926, bordermode='ignore')
         self.ip_entry.configure(takefocus="")
         self.ip_entry.configure(cursor="ibeam")
 
         self.connect_button = ttk.Button(self.connection_parameter_frame)
-        self.connect_button.place(relx=0.804, rely=0.34, height=25, width=76
-                                  , bordermode='ignore')
+        self.connect_button.place(relx=0.804, rely=0.34, height=25, width=76                                  , bordermode='ignore')
         self.connect_button.configure(text='''connect''')
         self.connect_button.configure(command=lambda e='': self.connect(e))
 
         self.disconnect_button = ttk.Button(self.connection_parameter_frame)
-        self.disconnect_button.place(relx=0.804, rely=0.54, height=25, width=76
-                                     , bordermode='ignore')
+        self.disconnect_button.place(relx=0.804, rely=0.54, height=25, width=76                                     , bordermode='ignore')
         self.disconnect_button.configure(takefocus="")
         self.disconnect_button.configure(text='''disconnect''')
         self.disconnect_button.configure(state='disable')
         self.disconnect_button.configure(command=lambda e='': self.exit1(e))
 
         self.exit_btn = ttk.Button(self.connection_parameter_frame)
-        self.exit_btn.place(relx=0.804, rely=0.74, height=25, width=76
-                            , bordermode='ignore')
+        self.exit_btn.place(relx=0.804, rely=0.74, height=25, width=76                            , bordermode='ignore')
         self.exit_btn.configure(takefocus="")
         self.exit_btn.configure(text='''exit''')
         self.exit_btn.configure(command=lambda e='': self.exit2(e))
 
         self.connection_state = ttk.Labelframe(self.root)
-        self.connection_state.place(relx=0.017, rely=0.304, relheight=0.68
-                                    , relwidth=0.941)
+        self.connection_state.place(relx=0.017, rely=0.304, relheight=0.68                                    , relwidth=0.941)
         self.connection_state.configure(relief='')
         self.connection_state.configure(text='''connection_state''')
         self.connection_state.configure(width=560)
 
         self.connection_state_text = ScrolledText(self.connection_state)
-        self.connection_state_text.place(relx=0.018, rely=0.06, relheight=0.928
-                                         , relwidth=0.966, bordermode='ignore')
+        self.connection_state_text.place(relx=0.018, rely=0.06, relheight=0.928                                         , relwidth=0.966, bordermode='ignore')
         self.connection_state_text.configure(background="white")
         self.connection_state_text.configure(state='disabled')
         self.connection_state_text.configure(font="TkTextFont")
@@ -463,8 +449,7 @@ class Toplevel1():
         '''the following two statements used to initiate the port entry and file path entry'''
         self.getIP()
         self.ip_entry.insert(0, self.ip)
-        self.port_entry.insert(0, self.port)
-        self.path=str(os.path.expanduser('~/'))
+        self.path = str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
             os.mkdir(self.instrumentName)
@@ -473,6 +458,21 @@ class Toplevel1():
         os.chdir(self.path + self.instrumentName)
         # print(os.getcwd())
         self.globalCode2localCode()
+
+        self.dbc()
+        try:
+            self.dbc('''
+                    CREATE TABLE sample(
+                    barcode unsigned int primary key,
+                    created_at datetime not null default current_timestamp
+                    )
+                ''')
+        except sqlite3.OperationalError as e:
+            # print('already exists')
+            if str(e)[-6:] == 'exists':
+                pass
+            else:
+                raise sqlite3.OperationalError
 
         try:
             self.dbc('''
@@ -490,7 +490,6 @@ class Toplevel1():
                 raise sqlite3.OperationalError
 
 
-
         try:
             self.dbc('''
                     CREATE TABLE test(
@@ -498,7 +497,8 @@ class Toplevel1():
                     barcodeid varchar(30) not null,
                     results varchar(20000) not null,
                     uploadstate varchar(1) default 'n',
-                    created_at datetime not null default current_timestamp
+                    created_at datetime not null default current_timestamp,
+                    FOREIGN KEY(barcodeid) REFERENCES user(barcode)
                     );
                 ''')
         except sqlite3.OperationalError as e:
@@ -544,10 +544,10 @@ class AutoScroll(object):
         # Copy geometry methods of master  (taken from ScrolledText.py)
         if py3:
             methods = tk.Pack.__dict__.keys() | tk.Grid.__dict__.keys() \
-                  | tk.Place.__dict__.keys()
+                | tk.Place.__dict__.keys()
         else:
             methods = tk.Pack.__dict__.keys() + tk.Grid.__dict__.keys() \
-                  + tk.Place.__dict__.keys()
+                + tk.Place.__dict__.keys()
 
         for meth in methods:
             if meth[0] != '_' and meth not in ('config', 'configure'):
@@ -614,9 +614,9 @@ def _unbound_to_mousewheel(event, widget):
 
 def _on_mousewheel(event, widget):
     if platform.system() == 'Windows':
-        widget.yview_scroll(-1*int(event.delta/120),'units')
+        widget.yview_scroll(-1*int(event.delta/120), 'units')
     elif platform.system() == 'Darwin':
-        widget.yview_scroll(-1*int(event.delta),'units')
+        widget.yview_scroll(-1*int(event.delta), 'units')
     else:
         if event.num == 4:
             widget.yview_scroll(-1, 'units')
@@ -635,7 +635,7 @@ def _on_shiftmouse(event, widget):
         elif event.num == 5:
             widget.xview_scroll(1, 'units')
 
+
 #
 instance = Toplevel1()
 instance.root.mainloop()
-

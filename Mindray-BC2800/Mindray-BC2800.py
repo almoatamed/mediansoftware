@@ -491,7 +491,7 @@ class Toplevel1:
                 ''')
             self.dbc('insert into counter(id,count) values(1,1);')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:
@@ -509,7 +509,7 @@ class Toplevel1:
                     );
                 ''')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:

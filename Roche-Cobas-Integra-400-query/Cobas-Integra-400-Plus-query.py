@@ -102,7 +102,6 @@ class Toplevel1:
             print('run: port established')
             self.show('connecting...')
             self.disconnect_button.configure(state='enable')
-            self.frames = [''.encode('ascii')]
             self.handling = False
             self.Thread = threading.Thread(target=self.communicate)
             self.Thread.start()
@@ -117,7 +116,7 @@ class Toplevel1:
             self.handling = True
             try:
                 if not self.syncSC():
-                    print('communicate: error no response from send reciee at sync')
+                    print('communicate: error no response from send receive at sync')
                     self.disconnect()
                     return False
                 q = 0
@@ -188,10 +187,7 @@ class Toplevel1:
                                 for line in lines:
                                     print('communicate: 42_ requests given line', line)
                                     try:
-                                        if line[4].decode() == '123412341243':
-                                            required_tests = ['GLUC3','CRPL2']
-                                        else:
-                                            required_tests = self.getSampleParameters(line[4].decode())
+                                        required_tests = self.getSampleParameters(line[4].decode())
                                     except:
                                         print('Communicate: OQ, Error while getting sample parameters')
                                         continue
@@ -205,6 +201,8 @@ class Toplevel1:
                                     for test in required_tests:
                                         if test in self.g2l:
                                             available_tests.append(test)
+                                        else:
+                                            print('communication: test was not found in G2L')
                                     if not available_tests:
                                         print('communicate: preparing order response, no matching tests has been found')
                                         continue
@@ -325,17 +323,18 @@ class Toplevel1:
         x = 1
         while x < 8:
             self.port.write(self.IDLE)
-            print('syncing')
+            print('syncSC: ')
             message = self.messageReader()
             print('syncSC: message: ',message)
             if not message:
                 return False
-            print('receiving msg')
+            print('syncSC: receiving msg')
             print('syncSC: checksum, ',message[0:-6], int(message.split(self.LF)[-3][0:3].replace(b' ', b'')))
             if not self.checkSum(message[0:-6], int(message.split(self.LF)[-3][0:3].replace(b' ',b''))):
                 if x == 7:
+                    self.show('syncSC: exiting, several times checksum error')
                     return False
-                print('checksum error')
+                self.show('syncSC: checksum error')
                 x += 1
                 time.sleep(2)
                 continue
@@ -382,7 +381,7 @@ class Toplevel1:
             if data == b'\x01':
                 print('message reader: started receiving new message')
                 message = data
-            elif data == b'\x0A':
+            elif data == self.LF:
                 message += data
                 print('message reader: End of frame,',message)
                 print('message reader: \\x04',message[-2])
@@ -397,7 +396,7 @@ class Toplevel1:
     def disconnect(self):
         try:
             if self.port.is_open:
-                self.running =False
+                self.Handling =False
                 self.port.close()
                 self.show('disconnected')
                 self.connect_button.configure(state='enable')
@@ -716,7 +715,7 @@ class Toplevel1:
                 ''')
             self.dbc('insert into counter(id,count) values(1,1);')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:
@@ -734,7 +733,7 @@ class Toplevel1:
                     );
                 ''')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:

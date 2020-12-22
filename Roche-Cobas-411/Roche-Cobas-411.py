@@ -79,7 +79,7 @@ class Toplevel1:
         for p in ports:
             if self.port_entry.get() in p.description:
                 try:
-                    s = serial.Serial(p.device, self.rate, self.bitlength, self.parity, self.stopbit,timeout=10)
+                    s = serial.Serial(p.device, self.rate, self.bitlength, self.parity, self.stopbit,timeout=6)
                 except:
                     self.show('ERROR: error while trying to open the port')
                     return None
@@ -102,6 +102,7 @@ class Toplevel1:
             print('run: port established')
             self.show('connecting...')
             self.disconnect_button.configure(state='enable')
+            self.port.timeout = 6
             self.running = True
             self.Thread = threading.Thread(target=self.communicate)
             self.Thread.start()
@@ -119,8 +120,8 @@ class Toplevel1:
                 if not self.running:
                     return False
                 data = self.port.read(1)
-                if not self.running:
-                    return False
+                if data == '':
+                    continue
                 if data == b'\x05' or data == b'\x0A' or data == b'\x04':
                     if data == b'\x05':
                         self.port.write(b'\x06')
@@ -171,16 +172,47 @@ class Toplevel1:
             self.show('Looper: ERROR serial has been disconnected ')
             self.disconnect()
 
-    l2g = {}
+    l2g = {
+        '10':'TSH',
+        '21':'T4',
+        '50':'T3',
+        '100': 'TESTO',
+        '131': 'PRL',
+        '140': 'LH',
+        '150': 'FSH',
+        '211': 'CKMBSTAT',
+        '301': 'CEA',
+        '321': 'TPSA',
+        '332': 'CA15-3',
+        '341': 'CA125',
+        '351': 'CA19-9',
+        '381': 'FERR',
+        '391': 'FPSA',
+        'IGE': '630',
+        "761": 'HCG-BETA',
+        '810': 'A-CCP',
+        '860': 'TNISTAT',
+        '880': 'HIVCOMPT',
+        '890': 'HGH',
+        '900': 'HBSAG-II',
+        '950': 'VITD-T',
+        '124': 'FT3-III',
+        '128': 'CORT',
+        '137': 'E2-III',
+        '138': 'PROG-III',
+        '141': 'B12',
+        '151': 'VITD-II',
+        '161': 'FT4',
+        '182': 'TSH',
+        '212': 'TPSA',
+        '214': 'FPSA'
+    }
     g2l = {}
 
     def checkSum(self, frame,splitchar):
         print('checkSum: frame given', frame, ', splitchar', splitchar)
         print('checkSum: values,',self.checkSumCreator(frame[0][1:] + splitchar), frame[1][0:2])
-        if self.checkSumCreator(frame[0][1:] + splitchar).capitalize() == frame[1][0:2].capitalize():
-            return True
-        else:
-            return False
+        return self.checkSumCreator(frame[0][1:] + splitchar).capitalize() == frame[1][0:2].capitalize()
 
     '''this one is responsible for returning a dictionary containing result details'''
     def result(self,frames):
@@ -255,7 +287,7 @@ class Toplevel1:
                 # if self.port.in_waiting:
                 self.port.timeout = 8
                 d = self.port.read(1)
-                self.port.timeout = 1000000
+                self.port.timeout = 6
                 print('Q_handler: d',d)
                 if d == b'\x15':
                     c += 1
@@ -599,7 +631,7 @@ class Toplevel1:
                 ''')
             self.dbc('insert into counter(id,count) values(1,1);')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:
@@ -617,7 +649,7 @@ class Toplevel1:
                     );
                 ''')
         except sqlite3.OperationalError as e:
-            print('already exists')
+            # print('already exists')
             if str(e)[-6:] == 'exists':
                 pass
             else:

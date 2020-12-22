@@ -58,7 +58,8 @@ class looper(threading.Thread):
                 '\n\nserver : connecting' + '\nserver: ' + str((self.main_win.ip, 5100)))
             try:
                 s = socket.socket()
-                s.connect((self.main_win.ip,5100))
+                s.connect((self.main_win.ip, 5100))
+                self.handler(s)
             except TimeoutError:
                 self.main_win.show(
                     'server-run: Timeout while trying to connect to Instrument ' + self.main_win.instrumentName + ''
@@ -69,8 +70,7 @@ class looper(threading.Thread):
             except:
                 self.main_win.show('server: Error occured please try again!')
                 self.main_win.disconnect()
-                return
-            self.handler(s)
+                return            
 
     def handler(self,s):
         print('handler')
@@ -79,18 +79,18 @@ class looper(threading.Thread):
             if not self.running:
                 return
             time.sleep(2)
-            bytes = s.recv(999999)
-            bytes = bytes.replace(b'\x02',b'')
-            if bytes == '\n':
+            bytesReceived = s.recv(999999)
+            bytesReceived = bytesReceived.replace(b'\x02',b'')
+            if bytesReceived == '\n':
                 s.close()
                 del s
                 return
-            if len(bytes)<50:
-                print(bytes)
+            if len(bytesReceived)<50:
+                print(bytesReceived)
             else:
-                print(bytes[0:40])
-            if bytes:
-                data+=bytes
+                print(bytesReceived[0:40])
+            if bytesReceived:
+                data+=bytesReceived
                 if len(data)>4:
                     if data[-3:] == b'\r\x1c\r':
                         print('true signal')
@@ -160,7 +160,6 @@ class Toplevel1():
     # gets the connection ip and port for the local network instrument
     def set(self):
         self.ip = self.ip_entry.get()
-        self.portnumber = int(self.port_entry.get())
 
     # disables connect button
     # shows connecting message
@@ -170,10 +169,10 @@ class Toplevel1():
         self.connect_button.configure(state='disabled')
         self.show('connecting')
         self.disconnect_button.configure(state='enable')
-        print('starting')
+        
         self.set()
         self.looper = looper(self)
-        print('looper is abbout to run')
+        
         self.looper.start()
 
     # closes the looper instance and the connection sucket
@@ -405,13 +404,8 @@ class Toplevel1():
         self.port_description_frame.configure(text='''network_parameters''')
         self.port_description_frame.configure(width=400)
 
-        self.port_entry = ttk.Entry(self.port_description_frame)
-        self.port_entry.place(relx=0.025, rely=0.444, relheight=0.467, relwidth=0.33, bordermode='ignore')
-        self.port_entry.configure(takefocus="")
-        self.port_entry.configure(cursor="ibeam")
-
         self.ip_entry = ttk.Entry(self.port_description_frame)
-        self.ip_entry.place(relx=0.37, rely=0.444, relheight=0.467, relwidth=0.596, bordermode='ignore')
+        self.ip_entry.place(relx=0.025, rely=0.444, relheight=0.467, relwidth=0.926, bordermode='ignore')
         self.ip_entry.configure(takefocus="")
         self.ip_entry.configure(cursor="ibeam")
 
@@ -462,7 +456,6 @@ class Toplevel1():
         '''the following two statements used to initiate the port entry and file path entry'''
         self.getIP()
         self.ip_entry.insert(0, self.ip)
-        self.port_entry.insert(0, self.port)
         self.path=str(os.path.expanduser('~/'))
         os.chdir(self.path)
         try:
